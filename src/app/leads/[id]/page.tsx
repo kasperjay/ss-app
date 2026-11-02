@@ -15,7 +15,6 @@ import { EditableArtistName } from "@/components/EditableArtistName";
 import { EditableArtistLocation } from "@/components/EditableArtistLocation";
 import { EditableSpotifyProfile } from "@/components/EditableSpotifyProfile";
 import LeadBottomNavigation from "@/components/LeadBottomNavigation";
-import { LeadWorkflowPanel } from "@/components/LeadWorkflowPanel";
 import {
   generateDraftsForLead,
   refreshLeadData,
@@ -24,8 +23,6 @@ import {
   updateLeadStatus,
 } from "./actions";
 import { buildBookingUrl } from "@/lib/google-calendar";
-import { ensureDefaultSequences } from "@/lib/sequence-close-service";
-import type { SequenceStepDef } from "@/lib/reply-to-close-core";
 
 const formatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 
@@ -160,17 +157,12 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
     ],
   };
 
-  await ensureDefaultSequences();
-
   const [
     releaseRows,
     postRows,
     releaseCount,
     postCount,
     allLeadsNav,
-    sequences,
-    enrollments,
-    activeProject,
   ] = await Promise.all([
     prisma.release.findMany({
       where: releaseWhere,
@@ -201,26 +193,6 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
         artist: { select: { name: true } },
       },
       orderBy: [{ score: "desc" }, { updatedAt: "desc" }, { id: "desc" }],
-    }),
-    prisma.followUpSequence.findMany({
-      orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        isDefault: true,
-        steps: true,
-      },
-    }),
-    prisma.leadSequenceEnrollment.findMany({
-      where: { leadId: lead.id },
-      include: { sequence: true },
-      orderBy: { updatedAt: "desc" },
-    }),
-    prisma.project.findFirst({
-      where: { artistId: lead.artist.id, status: "ACTIVE" },
-      include: { invoice: true },
-      orderBy: { updatedAt: "desc" },
     }),
   ]);
 
@@ -264,48 +236,6 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
     highlight: lead.artist.spotifyHighlight ?? "#ffffff",
   };
 
-  const serializedSequences = sequences.map((seq) => ({
-    id: seq.id,
-    name: seq.name,
-    description: seq.description,
-    isDefault: seq.isDefault,
-    steps: Array.isArray(seq.steps) ? (seq.steps as unknown as SequenceStepDef[]) : [],
-  }));
-
-  const serializedEnrollments = enrollments.map((enr) => ({
-    id: enr.id,
-    sequenceId: enr.sequenceId,
-    currentStep: enr.currentStep,
-    startedAt: enr.startedAt.toISOString(),
-    completedAt: enr.completedAt?.toISOString() ?? null,
-    pausedAt: enr.pausedAt?.toISOString() ?? null,
-    status: enr.status,
-    sequence: {
-      id: enr.sequence.id,
-      name: enr.sequence.name,
-      steps: Array.isArray(enr.sequence.steps)
-        ? (enr.sequence.steps as unknown as SequenceStepDef[])
-        : [],
-    },
-  }));
-
-  const serializedActiveProject = activeProject
-    ? {
-        id: activeProject.id,
-        title: activeProject.title,
-        portalToken: activeProject.portalToken,
-        workflowStage: activeProject.workflowStage,
-        paywallDeliverables: activeProject.paywallDeliverables,
-        invoice: activeProject.invoice
-          ? {
-              id: activeProject.invoice.id,
-              invoiceNumber: activeProject.invoice.invoiceNumber,
-              status: activeProject.invoice.status,
-              totalCents: activeProject.invoice.totalCents,
-            }
-          : null,
-      }
-    : null;
 
   const renderDraftCard = (message: (typeof reachoutDrafts)[number]) => {
     const isSequenceDraft = Boolean(message.source?.startsWith("sequence:"));
@@ -529,24 +459,6 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
                 <StatusPill status={lead.status} />
               </div>
             </div>
-
-            <LeadWorkflowPanel
-              lead={{
-                id: lead.id,
-                status: lead.status,
-                nextActionAt: lead.nextActionAt?.toISOString() ?? null,
-                followUpActionType: lead.followUpActionType ?? null,
-                artist: {
-                  name: lead.artist.name,
-                  followerCount: lead.artist.followerCount ?? null,
-                  instagramHandle: lead.artist.instagramHandle ?? null,
-                  emails: lead.artist.emails ?? [],
-                },
-              }}
-              sequences={serializedSequences}
-              enrollments={serializedEnrollments}
-              activeProject={serializedActiveProject}
-            />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <GlassCard className="p-6! bg-white/2 border-white/5">

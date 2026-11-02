@@ -116,6 +116,16 @@ export async function updateLeadStatus(state: UpdateStatusState) {
       reason: `status set to ${state.status}`,
       terminalStatus: state.status === "LOST" ? "CANCELLED" : "PAUSED",
     });
+  } else if (state.status === "CONTACTED") {
+    try {
+      await enrollLeadInSequence({
+        leadId: state.leadId,
+        afterOutboundSend: true,
+        onlyIfNoExistingEnrollment: true,
+      });
+    } catch (err) {
+      console.warn("[updateLeadStatus] Sequence enrollment skipped:", err);
+    }
   }
 
   revalidatePath("/leads");
@@ -164,6 +174,21 @@ export async function markContacted(state: LeadActionState) {
     website: lead.artist.officialSiteUrl,
     dateContacted: new Date(),
   });
+
+  try {
+    await enrollLeadInSequence({
+      leadId: lead.id,
+      afterOutboundSend: true,
+      onlyIfNoExistingEnrollment: true,
+    });
+  } catch (err) {
+    console.warn("[markContacted] Sequence enrollment skipped:", err);
+  }
+
+  revalidatePath(`/leads/${lead.id}`);
+  revalidatePath("/leads");
+  revalidatePath("/operations");
+  revalidatePath("/sequences");
 }
 
 export async function sendMessage(state: SendMessageState) {
