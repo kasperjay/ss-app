@@ -23,6 +23,7 @@ import {
   updateLeadStatus,
 } from "./actions";
 import { buildBookingUrl } from "@/lib/google-calendar";
+import { extractShortcode } from "@/lib/instagram-embed";
 
 const formatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 
@@ -47,14 +48,34 @@ const formatStatusLabel = (status: string) => {
     .join(" ");
 };
 
-const proxiedHelper = (url: string | null) => {
-  if (!url) return undefined;
-  // Proxy Instagram through the server since the server can reach Instagram CDN
-  // even when browsers get blocked. Always proxy Instagram URLs.
-  const isInstagram = url.includes("cdninstagram.com") || url.includes("instagram.com") || url.includes("fbcdn.net");
-  if (isInstagram) {
-    return `/api/proxy?url=${encodeURIComponent(url)}`;
+const proxiedHelper = (
+  url: string | null,
+  shortcodeOrPost?: string | { url?: string | null; instagramPostId?: string | null; id?: string } | null,
+  postId?: string | null
+) => {
+  if (!url && !shortcodeOrPost) return undefined;
+  let code: string | null = null;
+  let pid: string | null = postId ?? null;
+  if (typeof shortcodeOrPost === "string") {
+    code = shortcodeOrPost;
+  } else if (shortcodeOrPost && typeof shortcodeOrPost === "object") {
+    code = extractShortcode(shortcodeOrPost);
+    if (!pid && shortcodeOrPost.id) pid = shortcodeOrPost.id;
   }
+
+  const isInstagram = url
+    ? url.includes("cdninstagram.com") || url.includes("instagram.com") || url.includes("fbcdn.net")
+    : Boolean(code);
+
+  if (isInstagram) {
+    const params = new URLSearchParams();
+    if (url) params.set("url", url);
+    if (code) params.set("shortcode", code);
+    if (pid) params.set("postId", pid);
+    return `/api/proxy?${params.toString()}`;
+  }
+
+  if (!url) return undefined;
   // Spotify and other CDNs go through proxy for CORS / header handling
   const needsProxy = [
     "fbcdn.net", "instagram.com", "fbsbx.com", "cdninstagram.com",
@@ -214,7 +235,12 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
   const postTotalPages = Math.max(1, Math.ceil(postCount / postPageSize));
   const featuredRelease = releaseRows[0] ?? null;
 
-  const instagramAvatar = proxiedHelper(lead.artist.instagramProfileImageUrl ?? postRows[0]?.imageUrl ?? null);
+  const firstPost = postRows[0] ?? null;
+  const instagramAvatar = proxiedHelper(
+    lead.artist.instagramProfileImageUrl ?? firstPost?.imageUrl ?? null,
+    firstPost,
+    firstPost?.id
+  );
 
   const reachoutDrafts = lead.messages.filter(
     (m) => !m.selected && (m.source === "reachout" || Boolean(m.source?.startsWith("sequence:")))
@@ -531,9 +557,14 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
                           rel="noreferrer"
                           className="snap-start shrink-0 w-[220px] rounded-2xl border border-white/10 bg-black/30 overflow-hidden hover:border-accent/30 transition-all"
                         >
-                          <div className="h-[150px] w-full bg-black/30">
-                            {post.imageUrl ? (
-                              <img src={proxiedHelper(post.imageUrl)} alt="Instagram post" className="h-full w-full object-cover" />
+                          <div className="h-[150px] w-full bg-black/30 overflow-hidden">
+                            {proxiedHelper(post.imageUrl, post, post.id) ? (
+                              <img
+                                src={proxiedHelper(post.imageUrl, post, post.id)}
+                                alt="Instagram post"
+                                className="h-full w-full object-cover"
+                                loading="lazy"
+                              />
                             ) : null}
                           </div>
                           <div className="p-3 space-y-1">

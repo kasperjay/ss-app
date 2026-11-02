@@ -1,9 +1,51 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
+import { fetchInstagramEmbed, extractShortcode } from "@/lib/instagram-embed";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const url = searchParams.get("url");
+  let url = searchParams.get("url");
+  let shortcode = searchParams.get("shortcode");
+  const postId = searchParams.get("postId");
+
+  if (!url && !shortcode && !postId) {
+    return new NextResponse("Missing URL or shortcode", { status: 400 });
+  }
+
+  // If postId provided but shortcode missing, attempt to resolve from DB
+  if (!shortcode && postId) {
+    try {
+      const dbPost = await prisma.instagramPost.findUnique({
+        where: { id: postId },
+        select: { id: true, instagramPostId: true, url: true, imageUrl: true },
+      });
+      if (dbPost) {
+        shortcode = extractShortcode(dbPost);
+        if (!url && dbPost.imageUrl) {
+          url = dbPost.imageUrl;
+        }
+      }
+    } catch {
+      // Non-fatal fallback
+    }
+  }
+
+  // If shortcode provided but no URL, resolve directly from embed
+  if (!url && shortcode) {
+    const embedData = await fetchInstagramEmbed(shortcode);
+    if (embedData?.postImageUrl) {
+      url = embedData.postImageUrl;
+      if (postId) {
+        prisma.instagramPost.update({
+          where: { id: postId },
+          data: { imageUrl: embedData.postImageUrl },
+        }).catch(() => {});
+      }
+    } else {
+      return new NextResponse("Image not found on Instagram", { status: 404 });
+    }
+  }
 
   if (!url) {
     return new NextResponse("Missing URL", { status: 400 });
@@ -25,26 +67,54 @@ export async function GET(request: NextRequest) {
     "images.weserv.nl",
     "imgix.net",
   ];
-  const isAllowed = allowedDomains.some(domain => url.includes(domain));
+  const isAllowed = allowedDomains.some((domain) => url.includes(domain));
 
   if (!isAllowed) {
     console.warn(`[Proxy] Rejected domain: ${url}`);
     return new NextResponse("Forbidden domain", { status: 403 });
   }
 
-  console.log(`[Proxy] Fetching: ${url.slice(0, 60)}...`);
-
   try {
-    const response = await fetchIG(url);
+    let response = await fetchIG(url);
+
+    // If initial fetch failed with 403 / 410 and we have a shortcode, self-heal via embed
+    if (!response.ok && (response.status === 403 || response.status === 410)) {
+      if (!shortcode && postId) {
+        try {
+          const dbPost = await prisma.instagramPost.findUnique({
+            where: { id: postId },
+            select: { id: true, instagramPostId: true, url: true },
+          });
+          if (dbPost) shortcode = extractShortcode(dbPost);
+        } catch {}
+      }
+
+      if (shortcode) {
+        console.log(`[Proxy] Self-healing expired image via embed for shortcode: ${shortcode}`);
+        const embedData = await fetchInstagramEmbed(shortcode);
+        if (embedData?.postImageUrl) {
+          const freshRes = await fetchIG(embedData.postImageUrl);
+          if (freshRes.ok) {
+            response = freshRes;
+            // Update database asynchronously
+            if (postId) {
+              prisma.instagramPost.update({
+                where: { id: postId },
+                data: { imageUrl: embedData.postImageUrl },
+              }).catch(() => {});
+            }
+          }
+        }
+      }
+    }
 
     if (response.ok) {
       const contentType = response.headers.get("Content-Type") || "image/jpeg";
       const arrayBuffer = await response.arrayBuffer();
-      console.log(`[Proxy] Success: ${url.slice(0, 80)} (${contentType}, ${arrayBuffer.byteLength} bytes)`);
 
       const headers = new Headers();
       headers.set("Content-Type", contentType);
-      headers.set("Cache-Control", "public, max-age=31536000, immutable");
+      headers.set("Cache-Control", "public, max-age=604800, stale-while-revalidate=86400");
 
       return new NextResponse(arrayBuffer, { headers });
     }
@@ -53,24 +123,19 @@ export async function GET(request: NextRequest) {
       // Try without query params — sometimes the base CDN path still works
       const baseUrl = url.split("?")[0];
       if (baseUrl !== url) {
-        console.log(`[Proxy] 403, retrying without query params: ${baseUrl.slice(0, 80)}`);
         const retryResponse = await fetchIG(baseUrl);
         if (retryResponse.ok) {
           const contentType = retryResponse.headers.get("Content-Type") || "image/jpeg";
           const arrayBuffer = await retryResponse.arrayBuffer();
-          console.log(`[Proxy] Retry success: ${baseUrl.slice(0, 80)} (${arrayBuffer.byteLength} bytes)`);
           const headers = new Headers();
           headers.set("Content-Type", contentType);
           headers.set("Cache-Control", "public, max-age=86400");
           return new NextResponse(arrayBuffer, { headers });
         }
       }
-      console.warn(`[Proxy] 403 expired/unavailable: ${url.slice(0, 80)}`);
       return new NextResponse("Image expired or unavailable", { status: 410 });
     }
 
-    const errorText = await response.text().catch(() => "No error body");
-    console.error(`[Proxy] Failed to fetch ${url}: ${response.status} - ${errorText.slice(0, 100)}`);
     return new NextResponse(`Failed to fetch image: ${response.status}`, { status: response.status });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -87,9 +152,7 @@ async function fetchIG(url: string) {
       "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
       "Accept-Language": "en-US,en;q=0.9",
       "Accept-Encoding": "gzip, deflate, br",
-      "Referer": isInstagram
-        ? "https://www.instagram.com/"
-        : "https://open.spotify.com/",
+      "Referer": isInstagram ? "https://www.instagram.com/" : "https://open.spotify.com/",
       ...(isInstagram
         ? {
             "Origin": "https://www.instagram.com",

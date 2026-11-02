@@ -9,6 +9,7 @@
     "lint": "eslint",
     "import:csv": "node scripts/import-leads-from-csv.js",
     "backfill:enrich": "node scripts/backfill-enrich.js",
+    "refresh:ig": "node scripts/refresh-ig-posts.js",
     "backfill:ig-images": "node scripts/backfill-ig-images.js",
     "ig:scrape": "node scripts/ig-profile-scraper.js",
     "score": "node scripts/score-leads.js",
