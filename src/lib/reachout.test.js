@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { buildPayload, isAustinLocal, detectGenreStyle, hasExplicitPortfolioOffer } = require("./reachout-core");
+const { buildPayload, isAustinLocal, detectGenreStyle, findUnsupportedGenreTerms, hasExplicitPortfolioOffer } = require("./reachout-core");
 
 test("Reachout: Austin local detection", () => {
   assert.equal(isAustinLocal("Austin, TX"), true);
@@ -11,6 +11,23 @@ test("Reachout: Austin local detection", () => {
   assert.equal(isAustinLocal("Los Angeles, CA"), false);
   assert.equal(isAustinLocal(null), false);
   assert.equal(isAustinLocal(undefined), false);
+});
+
+test("Reachout: genre metadata is factual and rejects unsupported subgenres", () => {
+  const payload = buildPayload({
+    artist: "Almost Heaven",
+    genreText: "post-punk indie dance/pop",
+    location: "Austin, TX",
+    hasEmail: true,
+    isRecentRelease: false,
+  });
+
+  const userText = payload.input[1].content[0].text;
+  assert.ok(userText.includes("Artist Genre: post-punk indie dance/pop"));
+  assert.ok(userText.includes("Do not invent, substitute, or upgrade it into another genre or subgenre"));
+  assert.deepEqual(findUnsupportedGenreTerms("an epic doom metal essence", "post-punk indie dance/pop"), ["metal", "doom metal", "doom"]);
+  assert.deepEqual(findUnsupportedGenreTerms("the post-punk indie dance/pop edge", "post-punk indie dance/pop"), []);
+  assert.deepEqual(findUnsupportedGenreTerms("an epic doom metal essence", null), ["metal", "doom metal", "doom"]);
 });
 
 test("Reachout: Temporal Accuracy rules are present in system prompt", () => {
@@ -237,6 +254,8 @@ test("Reachout: Channel formatting rules for IG vs Email in system prompt", () =
   assert.ok(systemText.includes("Kasper Pickett"));
   assert.ok(!systemText.includes("producer at Spectral Soundworks"));
   assert.ok(systemText.includes("Do NOT mention 'Spectral Soundworks'"));
+  assert.ok(!systemText.includes("with Spectral Soundworks"));
+  assert.ok(!systemText.includes("Spectral Soundworks\\n"));
 });
 
 test("Reachout: cleanEmail handles Subject, sanitizes banned phrases, and appends Kasper Pickett without Spectral Soundworks", () => {
@@ -249,6 +268,12 @@ test("Reachout: cleanEmail handles Subject, sanitizes banned phrases, and append
   assert.ok(!cleaned.includes("Spectral Soundworks"));
   assert.ok(!cleaned.toLowerCase().includes("tracking room"));
   assert.ok(!cleaned.toLowerCase().includes("east austin"));
+});
+
+test("Reachout: sanitizer removes spaced or hyphenated brand variants", () => {
+  const { sanitizeDraftText } = require("./reachout-core");
+  const cleaned = sanitizeDraftText("Hey Alex — Kasper at Spectral  Soundworks / spectral-soundworks.");
+  assert.ok(!/spectral[\\s-]+soundworks/i.test(cleaned));
 });
 
 test("Reachout: eliminates 'i run a studio/mixing and tracking room' and 'in east Austin'", () => {

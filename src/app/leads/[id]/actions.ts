@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { LeadStatus } from "local-prisma-client";
 import { generateReachoutDrafts } from "@/lib/reachout";
+import { findUnsupportedGenreTerms } from "@/lib/reachout-core";
 import { getBestShowContext, formatPostWithTimestamp } from "@/lib/show-parser";
 import { scoreLead } from "@/lib/scoring";
 import { ensureBotRunning, isBotLoggedIn } from "@/lib/instagram-bot";
@@ -591,8 +592,8 @@ function sanitizeDraftText(text: string): string {
   out = out.replace(/\btracking room\b/gi, "studio space");
 
   // Remove any Spectral Soundworks references from outreach drafts
-  out = out.replace(/\b(?:with|at|from)\s+Spectral Soundworks\b/gi, "here in Austin");
-  out = out.replace(/\bSpectral Soundworks\b/gi, "");
+  out = out.replace(/\b(?:with|at|from)\s+Spectral\s+Soundworks\b/gi, "here in Austin");
+  out = out.replace(/\bSpectral[\s-]+Soundworks\b/gi, "");
   out = out.replace(/\bhere in Austin\s+in Austin\b/gi, "here in Austin");
 
   out = out.replace(/\bin Austin,?\s+in Austin\b/gi, "in Austin");
@@ -614,8 +615,8 @@ function cleanEmailDraft(value: string, artistName: string): string {
   text = sanitizeDraftText(text);
 
   // Strip Spectral Soundworks from body or signature
-  text = text.replace(/\n\s*Spectral Soundworks\s*$/gi, "");
-  text = text.replace(/\bSpectral Soundworks\b/gi, "");
+  text = text.replace(/\n\s*Spectral[\s-]+Soundworks\s*$/gi, "");
+  text = text.replace(/\bSpectral[\s-]+Soundworks\b/gi, "");
   text = text.replace(/\n{3,}/g, "\n\n").trim();
 
   if (!/kasper pickett/i.test(text)) {
@@ -879,7 +880,8 @@ DO NOT mention 'Spectral Soundworks'.`;
     `Current Date: ${currentDateStr}\n` +
     `Artist: ${ctx.artistName}\n` +
     `Location: ${ctx.location || "Unknown"} (Austin Local: ${isLocal ? "YES" : "NO"})\n` +
-    `Genre: ${ctx.genreText || "Not specified"} (Tone: ${genreStyle.tone})\n` +
+    `Genre (verified artist metadata): ${ctx.genreText || "Not specified"} (Tone guidance only: ${genreStyle.tone})\n` +
+    `GENRE FACTUALITY RULE: Treat the verified genre above as the only source of truth. Do not invent, substitute, or upgrade it into another genre or subgenre. Do not describe the artist as metal, doom, rock, punk, electronic, pop, hip hop, or any other genre unless that exact genre is present in the verified genre metadata. If the genre is not specified, do not use genre labels at all. Never infer genre from a release title, bio, image, post, venue, or musical cliché.\n` +
     (ctx.styleHint ? `Style tweak requested: ${ctx.styleHint}\n` : "") +
     `\n${portfolioOfferBlock}\n\n` +
     `MUSIC & RELEASES:\n${releaseSection}\n` +
@@ -1002,6 +1004,25 @@ DO NOT mention 'Spectral Soundworks'.`;
       });
     }
 
+    const unsupportedGenreTerms = Object.values(outputJson)
+      .flatMap((value) => findUnsupportedGenreTerms(value, ctx.genreText));
+    if (unsupportedGenreTerms.length > 0) {
+      console.warn(
+        `OpenAI draft contained unsupported genre terms (${[...new Set(unsupportedGenreTerms)].join(", ")}); falling back to genre-neutral generation`
+      );
+      return generateDeterministicDrafts({
+        artistName: ctx.artistName,
+        location: ctx.location,
+        isAustinLocal: isLocal,
+        releaseTitle: ctx.releaseTitle,
+        releaseType: ctx.releaseType,
+        upcomingShow: ctx.upcomingShow,
+        recentPastShow: ctx.recentPastShow,
+        hasEmail: ctx.hasEmail,
+        isPortfolioCampaign: ctx.isPortfolioCampaign,
+      });
+    }
+
     const result: { IG_A: string; IG_B: string; EMAIL_A?: string; EMAIL_B?: string } = {
       IG_A: sanitizeDraftText(outputJson.IG_A),
       IG_B: sanitizeDraftText(outputJson.IG_B),
@@ -1048,7 +1069,15 @@ export async function generateDraftsForLead(
   const now = new Date();
   const [releases, instagramPosts, inPortfolioCampaign] = await Promise.all([
     prisma.release.findMany({
-      where: { artistId: lead.artistId },
+      where: {
+        artistId: lead.artistId,
+        title: { not: "" },
+        OR: [
+          { spotifyTrackId: { not: null } },
+          { spotifyReleaseId: { not: null } },
+          { url: { not: null } },
+        ],
+      },
       orderBy: [{ releaseDate: "desc" }, { createdAt: "desc" }],
       take: 3,
     }),
@@ -1222,7 +1251,15 @@ export async function regenerateDraft(formData: FormData) {
   const now = new Date();
   const [releases, instagramPosts, inPortfolioCampaign] = await Promise.all([
     prisma.release.findMany({
-      where: { artistId: lead.artistId },
+      where: {
+        artistId: lead.artistId,
+        title: { not: "" },
+        OR: [
+          { spotifyTrackId: { not: null } },
+          { spotifyReleaseId: { not: null } },
+          { url: { not: null } },
+        ],
+      },
       orderBy: [{ releaseDate: "desc" }, { createdAt: "desc" }],
       take: 3,
     }),

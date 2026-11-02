@@ -105,6 +105,24 @@ const detectGenreStyle = (genreText) => {
   return GENRE_STYLES.default;
 };
 
+const GENRE_CLAIMS = [
+  "hip hop", "hip-hop", "rap", "trap", "drill", "boom bap", "grime",
+  "metal", "heavy metal", "death metal", "black metal", "doom metal", "doom", "thrash", "metalcore", "deathcore", "hardcore",
+  "rock", "alternative", "indie rock", "punk", "post-punk", "garage", "grunge", "shoegaze",
+  "electronic", "edm", "house", "techno", "dubstep", "drum and bass", "dnb", "bass music", "dance",
+  "pop", "indie pop", "synth pop", "dream pop", "r&b", "soul", "funk",
+  "country", "folk", "jazz", "blues", "classical", "reggaeton", "latin",
+];
+
+const findUnsupportedGenreTerms = (text, genreText) => {
+  if (!text) return [];
+  const source = genreText?.toLowerCase() || "";
+  return GENRE_CLAIMS.filter((claim) => {
+    const escaped = claim.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`\\b${escaped}\\b`, "i").test(text) && !source.includes(claim);
+  });
+};
+
 const AUSTIN_LOCAL_PATTERN =
   /\b(austin|round rock|cedar park|pflugerville|georgetown|kyle|buda|leander|manor|bastrop|dripping springs|lakeway|bee cave|sunset valley|rollingwood)\b/i;
 
@@ -199,6 +217,7 @@ const buildPayload = (ctx) => {
   const genreInstructions =
     "GENRE-SPECIFIC TONE REQUIREMENTS:\n" +
     `Artist Genre: ${ctx.genreText || "Not specified"}\n` +
+    "GENRE FACTUALITY RULE: Treat the artist genre above as verified metadata. Do not invent, substitute, or upgrade it into another genre or subgenre. Never infer genre from a release title, bio, image, post, venue, or musical cliché. If the genre is not specified, do not use genre labels.\n" +
     `Tone: ${genreStyle.tone}\n` +
     `IG Style: ${genreStyle.igStyle}\n\n` +
     "EMOJI REQUIREMENTS (STRICT):\n" +
@@ -275,7 +294,7 @@ const buildPayload = (ctx) => {
     "     * Signoff:\n" +
     "       Best,\n" +
     "       Kasper Pickett\n" +
-    "       Spectral Soundworks\n" +
+    "       (Do not append a company or studio name.)\n" +
     "   - LENGTH & CHARACTER COUNT: Full, thoughtful email. 120–180 words (approx 750–1,200 characters). Clean paragraphs, zero emojis.\n\n" +
     "TACTICAL ANGLES:\n" +
     "- VARIANT A (IG_A, EMAIL_A) = THE CRAFT & SOUND ANGLE:\n" +
@@ -444,8 +463,8 @@ const sanitizeDraftText = (text) => {
   out = out.replace(/\btracking room\b/gi, "studio space");
 
   // Remove any Spectral Soundworks references from outreach drafts
-  out = out.replace(/\b(?:with|at|from)\s+Spectral Soundworks\b/gi, "here in Austin");
-  out = out.replace(/\bSpectral Soundworks\b/gi, "");
+  out = out.replace(/\b(?:with|at|from)\s+Spectral\s+Soundworks\b/gi, "here in Austin");
+  out = out.replace(/\bSpectral[\s-]+Soundworks\b/gi, "");
   out = out.replace(/\bhere in Austin\s+in Austin\b/gi, "here in Austin");
 
   // Clean redundant repeated locations or formatting glitches
@@ -468,8 +487,8 @@ const cleanEmail = (value) => {
   text = sanitizeDraftText(text);
 
   // Strip Spectral Soundworks from body or signature
-  text = text.replace(/\n\s*Spectral Soundworks\s*$/gi, "");
-  text = text.replace(/\bSpectral Soundworks\b/gi, "");
+  text = text.replace(/\n\s*Spectral[\s-]+Soundworks\s*$/gi, "");
+  text = text.replace(/\bSpectral[\s-]+Soundworks\b/gi, "");
   text = text.replace(/\n{3,}/g, "\n\n").trim();
 
   if (!/kasper pickett/i.test(text)) {
@@ -530,7 +549,7 @@ const generateReachoutDrafts = async (ctx) => {
               text:
                 ctx.portfolioOffer
                   ? "Correction: Every message must state the offer explicitly: the artist's first song will receive recording, mixing, and mastering for free / at no cost, with unlimited revisions within the agreed song scope. Put that direct offer in the first or second sentence. Do not use vague substitutes such as 'collab', 'portfolio collab', 'help with recording or mixing', or 'accepting artists'. Also introduce Kasper as an Austin engineer without saying 'I run a studio', 'tracking room', or 'in East Austin'. Return JSON only."
-                  : "Correction: Make sure each message naturally introduces Kasper as an Austin engineer with Spectral Soundworks or references mixing, mastering, or production in an organic, low-pressure way without saying 'I run a studio', 'tracking room', or 'in East Austin'. Return JSON only.",
+                  : "Correction: Make sure each message naturally introduces Kasper as an independent Austin engineer and mixer, or references mixing, mastering, or production in an organic, low-pressure way without saying 'I run a studio', 'tracking room', or 'in East Austin'. Do not mention any company or studio name. Return JSON only.",
             },
           ],
         },
@@ -562,6 +581,7 @@ const generateReachoutDrafts = async (ctx) => {
 module.exports = {
   REACHOUT_CONFIG,
   detectGenreStyle,
+  findUnsupportedGenreTerms,
   isAustinLocal,
   buildPayload,
   extractJson,

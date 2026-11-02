@@ -24,6 +24,7 @@ import {
 } from "./actions";
 import { buildBookingUrl } from "@/lib/google-calendar";
 import { extractShortcode } from "@/lib/instagram-embed";
+import { findUnsupportedGenreTerms } from "@/lib/reachout-core";
 
 const formatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 
@@ -139,7 +140,14 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
   if (!leadRecord) notFound();
   let lead = leadRecord;
 
-  const hasReachoutDraft = lead.messages.some((message) => message.source === "reachout");
+  const candidateReachoutDrafts = lead.messages.filter(
+    (message) => !message.selected && message.source === "reachout"
+  );
+  const hasReachoutDraft = candidateReachoutDrafts.length >= 2 && candidateReachoutDrafts.every(
+    (message) =>
+      !/\bspectral[\s-]+soundworks\b/i.test(message.body) &&
+      findUnsupportedGenreTerms(message.body, lead.artist.genre).length === 0
+  );
   const canGenerateDrafts = lead.status === "NEW" || lead.status === "QUALIFIED";
   let draftGenerationError: string | null = null;
   if (!hasReachoutDraft && canGenerateDrafts) {
