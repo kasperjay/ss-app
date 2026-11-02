@@ -242,6 +242,13 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
   const releaseTotalPages = Math.max(1, Math.ceil(releaseCount / releasePageSize));
   const postTotalPages = Math.max(1, Math.ceil(postCount / postPageSize));
   const featuredRelease = releaseRows[0] ?? null;
+  const featuredReleaseUrl = featuredRelease
+    ? featuredRelease.spotifyTrackId
+      ? `https://open.spotify.com/track/${featuredRelease.spotifyTrackId}`
+      : featuredRelease.spotifyReleaseId
+        ? `https://open.spotify.com/album/${featuredRelease.spotifyReleaseId}`
+        : featuredRelease.url
+    : null;
 
   const firstPost = postRows[0] ?? null;
   const instagramAvatar = proxiedHelper(
@@ -598,25 +605,20 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
                     />
                   </div>
 
-                  {featuredRelease ? (
-                    <iframe
-                      style={{ borderRadius: '12px' }}
-                      src={
-                        featuredRelease.spotifyTrackId
-                          ? `https://open.spotify.com/embed/track/${featuredRelease.spotifyTrackId}`
-                          : featuredRelease.spotifyReleaseId
-                          ? `https://open.spotify.com/embed/album/${featuredRelease.spotifyReleaseId}`
-                          : featuredRelease.url
-                          ? `https://open.spotify.com/embed${featuredRelease.url.split('spotify.com')[1]}`
-                          : ""
-                      }
-                      width="100%"
-                      height="352"
-                      frameBorder="0"
-                      allowFullScreen
-                      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                      loading="lazy"
-                    />
+                  {featuredRelease && featuredReleaseUrl ? (
+                    <a
+                      href={featuredReleaseUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex min-h-44 flex-col justify-between rounded-xl border border-white/10 bg-gradient-to-br from-emerald-500/15 via-black/30 to-accent/10 p-5 transition-colors hover:border-emerald-400/40"
+                    >
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-300/80">Latest verified release</p>
+                        <p className="mt-3 text-lg font-semibold text-white">{featuredRelease.title}</p>
+                        <p className="mt-1 text-xs text-white/45">Open on Spotify</p>
+                      </div>
+                      <span className="text-xs font-bold uppercase tracking-widest text-emerald-300">Listen ↗</span>
+                    </a>
                   ) : (
                     <p className="text-xs text-white/35">No releases available.</p>
                   )}
