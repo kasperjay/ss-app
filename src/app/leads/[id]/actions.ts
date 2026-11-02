@@ -1596,6 +1596,47 @@ export async function updateArtistLocation(state: {
   revalidatePath("/leads/desk");
 }
 
+export async function updateArtistGenre(state: {
+  artistId: string;
+  genre: string;
+}) {
+  const artist = await prisma.artist.findUnique({
+    where: { id: state.artistId },
+    include: { leads: true },
+  });
+
+  if (!artist) return;
+
+  const finalGenre = state.genre?.trim() || null;
+
+  await prisma.artist.update({
+    where: { id: artist.id },
+    data: { genre: finalGenre },
+  });
+
+  for (const lead of artist.leads) {
+    try {
+      await scoreLead(lead.id);
+    } catch (error) {
+      console.error(`Failed to rescore lead ${lead.id}:`, error);
+    }
+
+    await prisma.activity.create({
+      data: {
+        leadId: lead.id,
+        type: "STATUS_CHANGE",
+        note: `Artist genre updated from '${artist.genre || "None"}' to '${finalGenre || "None"}'`,
+      },
+    });
+    revalidatePath(`/leads/${lead.id}`);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/leads");
+  revalidatePath("/leads/desk");
+  revalidatePath("/operations");
+}
+
 /**
  * Parses a Spotify artist ID from a URL like:
  *   https://open.spotify.com/artist/3WrFJ7ztbogyGnTHbHJFl2

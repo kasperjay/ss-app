@@ -13,6 +13,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { DynamicThemeShell } from "@/components/DynamicThemeShell";
 import { EditableArtistName } from "@/components/EditableArtistName";
 import { EditableArtistLocation } from "@/components/EditableArtistLocation";
+import { EditableArtistGenre } from "@/components/EditableArtistGenre";
 import { EditableSpotifyProfile } from "@/components/EditableSpotifyProfile";
 import LeadBottomNavigation from "@/components/LeadBottomNavigation";
 import {
@@ -425,7 +426,7 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
                   <div className="flex flex-wrap items-center gap-3 text-xs font-bold uppercase tracking-[0.25em] text-white/70 pt-1">
                     <EditableArtistLocation artistId={lead.artist.id} initialLocation={lead.artist.location} />
                     <span>•</span>
-                    <span className="text-white/80">{lead.artist.genre || "Social Profile"}</span>
+                    <EditableArtistGenre artistId={lead.artist.id} initialGenre={lead.artist.genre} />
                   </div>
                 </div>
               </div>
