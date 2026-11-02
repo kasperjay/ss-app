@@ -648,22 +648,22 @@ function generateDeterministicDrafts(ctx: {
 
   if (ctx.isPortfolioCampaign) {
     igA = ctx.releaseTitle
-      ? `Hey ${name}, been spinning ${releaseRef} lately—really dig the production choices and the depth you've got on the vocal and rhythm tracks. I'm an audio engineer and mixer based here in Austin. I'm currently looking to connect with a handful of artists whose sound I respect, and I'd love to mix or master your next single on the house to see how we work together. If you're cutting new material soon or have stems ready to go, let's definitely connect!`
-      : `Hey ${name}, came across your music and really love the vibe and raw energy you've got going. I'm an audio engineer and mixer based here in Austin. I'm currently collaborating with select artists to expand my mix portfolio, and I'd love to mix or track a song for you on the house to test the waters. If you have any new tunes brewing, let's connect and swap some ideas!`;
+      ? `Hey ${name}, been spinning ${releaseRef} lately—really dig the production choices and the depth you've got on the vocal and rhythm tracks. I'm an audio engineer based here in Austin. I'm currently looking to connect with a handful of artists whose sound I respect, and I'd love to mix or master your next single on the house to see how we work together. If you're cutting new material soon or have stems ready to go, let's definitely connect!`
+      : `Hey ${name}, came across your music and really love the vibe and raw energy you've got going. I'm an audio engineer based here in Austin. I'm currently collaborating with select artists to expand my mix portfolio, and I'd love to mix or track a song for you on the house to test the waters. If you have any new tunes brewing, let's connect and swap some ideas!`;
 
     if (ctx.upcomingShow) {
       igB = ctx.isAustinLocal
-        ? `Hey ${name}, saw you've got an upcoming show lined up at ${ctx.upcomingShow.venue || "Austin"} on ${ctx.upcomingShow.datePretty || "the calendar"}—always love seeing local acts bringing that energy to the stage. I'm an audio engineer and mixer based here in town, and I'm offering a complimentary first-song mix or tracking session for artists whose sound I dig. If you're planning any new studio releases around the gig or after, let's grab coffee or chat music!`
-        : `Hey ${name}, saw you're coming through Austin for your set at ${ctx.upcomingShow.venue || "a show"} on ${ctx.upcomingShow.datePretty || "the calendar"}—stoked you're hitting our local scene. I'm an audio engineer and mixer based here in Austin, and I'm offering to mix or master a single on the house for artists passing through. If you have some downtime while you're in town or want to link up on sound, let me know!`;
+        ? `Hey ${name}, saw you've got an upcoming show lined up at ${ctx.upcomingShow.venue || "Austin"} on ${ctx.upcomingShow.datePretty || "the calendar"}—always love seeing local acts bringing that energy to the stage. I'm an audio engineer based here in town, and I'm offering a complimentary first-song mix or tracking session for artists whose sound I dig. If you're planning any new studio releases around the gig or after, let's grab coffee or chat music!`
+        : `Hey ${name}, saw you're coming through Austin for your set at ${ctx.upcomingShow.venue || "a show"} on ${ctx.upcomingShow.datePretty || "the calendar"}—stoked you're hitting our local scene. I'm an audio engineer based here in Austin, and I'm offering to mix or master a single on the house for artists passing through. If you have some downtime while you're in town or want to link up on sound, let me know!`;
     } else if (ctx.recentPastShow) {
-      igB = `Hey ${name}, hope your set at ${ctx.recentPastShow.venue || "the venue"} was killer last week—love the live momentum you have going. I'm an audio engineer and mixer here in Austin, and I'm offering to mix or master a new track on the house for select artists whose sound I really believe in. If you're gearing up for your next recording phase, I'd love to connect and hear what you're working on!`;
+      igB = `Hey ${name}, hope your set at ${ctx.recentPastShow.venue || "the venue"} was killer last week—love the live momentum you have going. I'm an audio engineer here in Austin, and I'm offering to mix or master a new track on the house for select artists whose sound I really believe in. If you're gearing up for your next recording phase, I'd love to connect and hear what you're working on!`;
     } else {
-      igB = `Hey ${name}, really appreciate what you're bringing to the scene—your sound has great atmosphere and punch. I'm an audio engineer and mixer based here in Austin. I'm doing a complimentary first-song mix or tracking session for a few select artists to build out some fresh collaborations. If you've got a demo or next single in the works, let me know if you'd like to test-drive a mix together!`;
+      igB = `Hey ${name}, really appreciate what you're bringing to the scene—your sound has great atmosphere and punch. I'm an audio engineer based here in Austin. I'm doing a complimentary first-song mix or tracking session for a few select artists to build out some fresh collaborations. If you've got a demo or next single in the works, let me know if you'd like to test-drive a mix together!`;
     }
 
     emailA = `Subject: Question on ${ctx.releaseTitle || "your music"} mix & vocal tones\n\nHey ${name},\n\n` +
       `Been spending some time listening to ${releaseRef} and really wanted to reach out. The instrumentation, tonal balance, and overall atmosphere in your tracks have a distinctive weight that really stands out to me as an engineer.\n\n` +
-      `I'm Kasper Pickett, an independent audio engineer and mixer based here in Austin. I work closely with artists on dialing in punchy, dynamic mixes and tactile production. Right now, I'm taking on a few select projects for a complimentary first-song collaboration—recording, mixing, or mastering a single completely on the house—so we can see how we vibe creatively without any upfront commitment.\n\n` +
+      `I'm Kasper Pickett, an independent audio engineer based here in Austin. I work closely with artists on dialing in punchy, dynamic mixes and tactile production. Right now, I'm taking on a few select projects for a complimentary first-song collaboration—recording, mixing, or mastering a single completely on the house—so we can see how we vibe creatively without any upfront commitment.\n\n` +
       `If you're currently tracking new tunes or sitting on rough demos you want to hear fully mixed, I'd love to take a listen. Let me know if you'd be open to chatting or swapping stems.\n\n` +
       `Best,\nKasper Pickett`;
 
@@ -677,27 +677,27 @@ function generateDeterministicDrafts(ctx: {
             ? `Hope your set at ${ctx.recentPastShow.venue || "Austin"} was a great night—always love keeping tabs on the live scene around town.`
             : `Just wanted to drop a line because I've been following your recent music and really respect the momentum you're building.`
       }\n\n` +
-      `I'm Kasper Pickett, an audio engineer and mixer based here in Austin. I'm currently offering a free first-song mix or tracking session for select artists whose sound and vision I really dig, purely to build out long-term creative relationships in the community. No strings attached—just dialed-in sound and an extra set of experienced ears.\n\n` +
+      `I'm Kasper Pickett, an audio engineer based here in Austin. I'm currently offering a free first-song mix or tracking session for select artists whose sound and vision I really dig, purely to build out long-term creative relationships in the community. No strings attached—just dialed-in sound and an extra set of experienced ears.\n\n` +
       `If you're cutting new material, planning your next release, or have tracks you want to test-drive in the mix, let me know! Always down to grab a coffee or jump on a quick call.\n\n` +
       `Best,\nKasper Pickett`;
   } else {
     igA = ctx.releaseTitle
-      ? `Hey ${name}, been spinning ${releaseRef} lately—really love the arrangement and the grit on the guitars and vocals. I'm an audio engineer and mixer based here in Austin. I'm always keeping an ear out for artists with a distinct identity, and I'd love to connect whenever you're tracking, mixing, or planning your next release. Let me know if you ever want to bounce mix ideas or talk shop on tones!`
-      : `Hey ${name}, came across your tracks and really dig the style and musical direction you're carving out. I'm an audio engineer and mixer based here in Austin. Always excited to connect with fellow musicians in the scene—whenever you're in the middle of recording or lining up mixes for new tunes, would love to hear what you're working on!`;
+      ? `Hey ${name}, been spinning ${releaseRef} lately—really love the arrangement and the grit on the guitars and vocals. I'm an audio engineer based here in Austin. I'm always keeping an ear out for artists with a distinct identity, and I'd love to connect whenever you're tracking, mixing, or planning your next release. Let me know if you ever want to bounce mix ideas or talk shop on tones!`
+      : `Hey ${name}, came across your tracks and really dig the style and musical direction you're carving out. I'm an audio engineer based here in Austin. Always excited to connect with fellow musicians in the scene—whenever you're in the middle of recording or lining up mixes for new tunes, would love to hear what you're working on!`;
 
     if (ctx.upcomingShow) {
       igB = ctx.isAustinLocal
-        ? `Hey ${name}, noticed you've got an upcoming set at ${ctx.upcomingShow.venue || "the venue"} on ${ctx.upcomingShow.datePretty || "the calendar"}—hope rehearsals are feeling locked in. I'm an audio engineer and mixer here in Austin, always staying plugged into the local live scene. Would love to link up whenever you're back in the studio working on your next batch of songs!`
-        : `Hey ${name}, saw you're coming through Austin for ${ctx.upcomingShow.venue || "your upcoming show"} on ${ctx.upcomingShow.datePretty || "the calendar"}. I'm an audio engineer and mixer based here in town—hope you have a killer set while you're in Austin, and let's definitely connect if you're ever looking for local recording or mixing ears!`;
+        ? `Hey ${name}, noticed you've got an upcoming set at ${ctx.upcomingShow.venue || "the venue"} on ${ctx.upcomingShow.datePretty || "the calendar"}—hope rehearsals are feeling locked in. I'm an audio engineer here in Austin, always staying plugged into the local live scene. Would love to link up whenever you're back in the studio working on your next batch of songs!`
+        : `Hey ${name}, saw you're coming through Austin for ${ctx.upcomingShow.venue || "your upcoming show"} on ${ctx.upcomingShow.datePretty || "the calendar"}. I'm an audio engineer based here in town—hope you have a killer set while you're in Austin, and let's definitely connect if you're ever looking for local recording or mixing ears!`;
     } else if (ctx.recentPastShow) {
-      igB = `Hey ${name}, hope that set at ${ctx.recentPastShow.venue || "the gig"} was a blast last week—really loved the live crowd response. I'm an audio engineer and mixer here in Austin. Whenever you're mapping out the next record or looking to take your mixes up a notch, let's definitely connect!`;
+      igB = `Hey ${name}, hope that set at ${ctx.recentPastShow.venue || "the gig"} was a blast last week—really loved the live crowd response. I'm an audio engineer here in Austin. Whenever you're mapping out the next record or looking to take your mixes up a notch, let's definitely connect!`;
     } else {
-      igB = `Hey ${name}, really dig what you bring to the music scene—the atmosphere and songwriting on your tracks is great. I'm an audio engineer and mixer here in Austin. Always open to connecting with artists doing authentic work, so feel free to hit me up whenever you're cutting new material or testing mixes!`;
+      igB = `Hey ${name}, really dig what you bring to the music scene—the atmosphere and songwriting on your tracks is great. I'm an audio engineer here in Austin. Always open to connecting with artists doing authentic work, so feel free to hit me up whenever you're cutting new material or testing mixes!`;
     }
 
     emailA = `Subject: Question on ${ctx.releaseTitle || "your sound"} mixes & production\n\nHey ${name},\n\n` +
       `Been listening to ${releaseRef} and really loved the overall sonic character and mix balance you achieved. The rhythm section punch and vocal space especially caught my ear as an engineer.\n\n` +
-      `I'm Kasper Pickett, an independent audio engineer and mixer based here in Austin. I specialize in helping artists capture tactile, organic tones and dialing in mixes that translate punchy and loud without losing their dynamics or emotional warmth. Whenever you're lining up your next batch of tracks or getting ready to cut a new single, I'd love to see if we can collaborate.\n\n` +
+      `I'm Kasper Pickett, an independent audio engineer based here in Austin. I specialize in helping artists capture tactile, organic tones and dialing in mixes that translate punchy and loud without losing their dynamics or emotional warmth. Whenever you're lining up your next batch of tracks or getting ready to cut a new single, I'd love to see if we can collaborate.\n\n` +
       `If you're currently working on demos or want an experienced set of ears on rough mixes, feel free to send some audio over. Would love to chat about your next project.\n\n` +
       `Best,\nKasper Pickett`;
 
@@ -711,7 +711,7 @@ function generateDeterministicDrafts(ctx: {
             ? `Hope that set at ${ctx.recentPastShow.venue || "Austin"} was a great night—always love keeping up with live gigs in the community.`
             : `Just wanted to say I've been following your music and really dig the consistency and live presence you bring.`
       }\n\n` +
-      `I'm Kasper Pickett, an audio engineer and mixer based here in Austin. I'm always looking to connect with artists doing inspiring, thoughtful work in the scene. Whether you're tracking new tunes, looking for high-end mix engineering, or just wanting to bounce ideas on production, I'm always down to talk sound.\n\n` +
+      `I'm Kasper Pickett, an audio engineer based here in Austin. I'm always looking to connect with artists doing inspiring, thoughtful work in the scene. Whether you're tracking new tunes, looking for high-end mix engineering, or just wanting to bounce ideas on production, I'm always down to talk sound.\n\n` +
       `Whenever you're planning your next release or heading back into the studio, let's grab coffee in town or jump on a call.\n\n` +
       `Best,\nKasper Pickett`;
   }
@@ -801,7 +801,7 @@ async function generateReachoutWithAI(ctx: {
   const portfolioOfferBlock = ctx.isPortfolioCampaign
     ? `PORTFOLIO COLLABORATION HOOK (CASUAL & PEER-TO-PEER):
 Kasper is offering to record, mix, or master their next single/track on the house (at no cost) as part of building out his mix portfolio with select artists in Austin.
-DO NOT mention 'Spectral Soundworks'. Introduce Kasper as an independent audio engineer and mixer here in Austin.
+DO NOT mention 'Spectral Soundworks'. Introduce Kasper as an independent audio engineer here in Austin.
 Present this casually and directly as a peer musician/producer, NOT as a contractual pitch or legal disclaimer.
 Natural examples:
 • "Down to mix your next single on the house if you want an extra set of ears on it."
@@ -810,12 +810,12 @@ Natural examples:
 NEVER use stiff corporate terms like "within agreed song scope", "deliverables", or "contractual unlimited revisions".`
     : `STANDARD OUTREACH (NO FREE-SESSION PITCH):
 This lead is NOT part of a portfolio building campaign. Do NOT offer free sessions or free songs.
-Introduce Kasper as an Austin audio engineer and mixer, compliment their sound, and casually leave the door open to collaborate, track, or mix when they're working on new material.
+Introduce Kasper as an Austin audio engineer, compliment their sound, and casually leave the door open to collaborate, track, or mix when they're working on new material.
 DO NOT mention 'Spectral Soundworks'.`;
 
   const systemText =
-    "You write outreach for Kasper Pickett, an independent audio engineer and mixer based in Austin, Texas.\n" +
-    "CRITICAL REQUIREMENT: Do NOT mention 'Spectral Soundworks' anywhere in the message, subject, or signoff. Introduce Kasper simply as an independent Austin audio engineer and mixer.\n" +
+    "You write outreach for Kasper Pickett, an independent audio engineer based in Austin, Texas.\n" +
+    "CRITICAL REQUIREMENT: Do NOT mention 'Spectral Soundworks' anywhere in the message, subject, or signoff. Introduce Kasper simply as an independent Austin audio engineer.\n" +
     "Your objective: Initiate a genuine, substantive connection between fellow music creators. Sound like a seasoned, thoughtful Austin audio engineer—conversational, warm, peer-to-peer, confident, and grounded. Zero marketing fluff, corporate jargon, or sales desperation.\n\n" +
     "TEMPORAL ACCURACY RULES (CRITICAL & MANDATORY):\n" +
     `- Today's date is ${currentDateStr}.\n` +
@@ -846,7 +846,7 @@ DO NOT mention 'Spectral Soundworks'.`;
     "CHANNEL FORMATTING & LENGTH RULES:\n" +
     "1. INSTAGRAM DMS (IG_A, IG_B):\n" +
     "   - LENGTH & CHARACTER COUNT: Substantive and conversational. 2 to 4 sentences, roughly 60–100 words (approx 350–600 characters). Do NOT make it a truncated 1-line blurb. Give it enough room to genuinely highlight their music, introduce Kasper's craft, and propose an authentic next step.\n" +
-    "   - STYLE: Conversational DM style. Jump directly into their track/sound or live show with specific musical detail, introduce Kasper as an Austin mix/audio engineer, and make a casual invite or offer.\n" +
+    "   - STYLE: Conversational DM style. Jump directly into their track/sound or live show with specific musical detail, introduce Kasper as an Austin audio engineer, and make a casual invite or offer.\n" +
     "   - NO 'Spectral Soundworks' mention.\n" +
     "   - EMOJIS: 0 to 1 natural emoji max, or none.\n" +
     "2. EMAILS (EMAIL_A, EMAIL_B):\n" +
@@ -857,7 +857,7 @@ DO NOT mention 'Spectral Soundworks'.`;
     "     * Line 3: 'Hey [Artist],' or 'Hey [First Name],'\n" +
     "     * Line 4: Empty line\n" +
     "     * Paragraph 1 (2-3 sentences): Specific, thoughtful observation on their sound, release, vocal/instrumental tone, or live performance.\n" +
-    "     * Paragraph 2 (2-3 sentences): Introduce Kasper as an Austin audio engineer and mixer, describe his tactile production aesthetic, and present an easy invite to collaborate or (if portfolio campaign) offer to mix a single on the house.\n" +
+    "     * Paragraph 2 (2-3 sentences): Introduce Kasper as an Austin audio engineer, describe his tactile production aesthetic, and present an easy invite to collaborate or (if portfolio campaign) offer to mix a single on the house.\n" +
     "     * Paragraph 3 (1-2 sentences): A low-pressure invite to chat, swap stems/demos, grab coffee in Austin, or talk through future recording.\n" +
     "     * Signoff:\n" +
     "       Best,\n" +

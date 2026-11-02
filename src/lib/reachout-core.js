@@ -250,7 +250,7 @@ const buildPayload = (ctx) => {
     : "";
 
   const systemText =
-    "You write outreach for Kasper Pickett, an independent audio engineer and mixer based in Austin, Texas.\nCRITICAL REQUIREMENT: Do NOT mention 'Spectral Soundworks' anywhere in outreach. Introduce Kasper simply as an independent Austin audio engineer and mixer.\n" +
+    "You write outreach for Kasper Pickett, an independent audio engineer based in Austin, Texas.\nCRITICAL REQUIREMENT: Do NOT mention 'Spectral Soundworks' anywhere in outreach. Introduce Kasper simply as an independent Austin audio engineer.\n" +
     "Your objective: Initiate a genuine connection between fellow music creators. Sound like a real Austin engineer—conversational, understated, peer-to-peer, confident, and chill. Zero marketing fluff or sales desperation.\n\n" +
     "TEMPORAL ACCURACY RULES (CRITICAL & MANDATORY):\n" +
     `- Today's date is ${currentDateStr}.\n` +
@@ -281,7 +281,7 @@ const buildPayload = (ctx) => {
     "CHANNEL FORMATTING RULES:\n" +
     "1. INSTAGRAM DMS (IG_A, IG_B):\n" +
     "   - LENGTH & CHARACTER COUNT: 2 to 4 sentences, roughly 60–100 words (approx 350–600 characters). Not a truncated blurb.\n" +
-    "   - STYLE: Direct DM style. No formal greeting like 'Dear...' or resume introduction ('Hello, I am Kasper Pickett, an audio engineer in Austin...'). Jump straight to their music or show, casually introduce Kasper as an Austin audio engineer/mixer collaborating on sound in Austin, and keep the door open. NEVER say 'I run a studio', 'tracking room', or 'in East Austin'.\n" +
+    "   - STYLE: Direct DM style. No formal greeting like 'Dear...' or resume introduction ('Hello, I am Kasper Pickett, an audio engineer in Austin...'). Jump straight to their music or show, casually introduce Kasper as an Austin audio engineer collaborating on sound in Austin, and keep the door open. NEVER say 'I run a studio', 'tracking room', or 'in East Austin'.\n" +
     "   - EMOJIS: Maximum 0 to 1 natural emoji, or none.\n" +
     "2. EMAILS (EMAIL_A, EMAIL_B):\n" +
     "   - STRUCTURE:\n" +
@@ -290,7 +290,7 @@ const buildPayload = (ctx) => {
     "     * Line 3: 'Hey [Artist],' or 'Hey [First Name],' if personal name is clear\n" +
     "     * Line 4: Empty line\n" +
     "     * Paragraph 1: 1-2 sentences with specific observation on their sound, release, production need, or show.\n" +
-    "     * Paragraph 2: 2-3 sentences on Kasper as an audio engineer and mixer in Austin and a low-friction invite to connect, collaborate on sound, track, or mix. Do NOT say 'I run a studio', 'tracking room', or 'in East Austin'.\n" +
+    "     * Paragraph 2: 2-3 sentences on Kasper as an audio engineer in Austin and a low-friction invite to connect, collaborate on sound, track, or mix. Do NOT say 'I run a studio', 'tracking room', or 'in East Austin'.\n" +
     "     * Signoff:\n" +
     "       Best,\n" +
     "       Kasper Pickett\n" +
@@ -306,7 +306,7 @@ const buildPayload = (ctx) => {
     portfolioOfferBlock +
     (ctx.portfolioOffer
       ? "- Every message must present the free first-song offer directly and prominently; personalization should lead into the offer, not bury or soften it.\n"
-      : "- Every message must establish Kasper as an Austin audio engineer and mixer with an organic, subtle offer of mixing/mastering/production (not salesy, not pushy).\n") +
+      : "- Every message must establish Kasper as an Austin audio engineer with an organic, subtle offer of mixing/mastering/production (not salesy, not pushy).\n") +
     "- MANDATORY RESTRICTION: Do NOT use the phrases 'I run a studio', 'run a studio', 'mixing and tracking room', 'tracking room', 'in East Austin', 'East Austin', or 'on the east side'. If referencing location, simply say 'in Austin' or 'here in Austin'.\n" +
     "- Do NOT mention AI, automation, scraping, spreadsheets, algorithms, or data.\n" +
     "- If referencing posts, paraphrase meaning like you actually understood it.\n" +
@@ -549,7 +549,7 @@ const generateReachoutDrafts = async (ctx) => {
               text:
                 ctx.portfolioOffer
                   ? "Correction: Every message must state the offer explicitly: the artist's first song will receive recording, mixing, and mastering for free / at no cost, with unlimited revisions within the agreed song scope. Put that direct offer in the first or second sentence. Do not use vague substitutes such as 'collab', 'portfolio collab', 'help with recording or mixing', or 'accepting artists'. Also introduce Kasper as an Austin engineer without saying 'I run a studio', 'tracking room', or 'in East Austin'. Return JSON only."
-                  : "Correction: Make sure each message naturally introduces Kasper as an independent Austin engineer and mixer, or references mixing, mastering, or production in an organic, low-pressure way without saying 'I run a studio', 'tracking room', or 'in East Austin'. Do not mention any company or studio name. Return JSON only.",
+                  : "Correction: Make sure each message naturally introduces Kasper as an independent Austin audio engineer, or references mixing, mastering, or production in an organic, low-pressure way without saying 'I run a studio', 'tracking room', or 'in East Austin'. Do not mention any company or studio name. Return JSON only.",
             },
           ],
         },

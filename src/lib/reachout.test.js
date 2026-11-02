@@ -47,6 +47,21 @@ test("Reachout: Temporal Accuracy rules are present in system prompt", () => {
   assert.ok(systemText.includes("If a show or event date occurred before today, it is in the PAST"));
 });
 
+test("Reachout: Kasper is introduced as an audio engineer only", () => {
+  const payload = buildPayload({
+    artist: "Test Band",
+    genreText: "indie rock",
+    location: "Austin, TX",
+    isRecentRelease: false,
+    hasEmail: true,
+  });
+
+  const systemText = payload.input[0].content[0].text;
+  assert.ok(systemText.includes("Introduce Kasper simply as an independent Austin audio engineer."));
+  assert.ok(!systemText.includes("audio engineer and mixer"));
+  assert.ok(!systemText.includes("audio engineer/mixer"));
+});
+
 test("Reachout: Out-of-town artist with upcoming future show suggests studio while in town", () => {
   const payload = buildPayload({
     artist: "Chironex",
