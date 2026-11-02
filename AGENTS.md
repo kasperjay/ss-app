@@ -16,15 +16,15 @@ The next phase should focus less on adding isolated scripts and more on making t
 
 | Area | Status | Entry Point | Notes |
 | --- | --- | --- | --- |
-| Lead scoring | Consolidated | `src/lib/scoring-core.js`, `src/lib/scoring.ts`, `scripts/score-leads.js` | API and CLI scoring now use the same shared scoring core. Scores are capped at 100. |
-| Event-driven scoring | Consolidated | `scripts/score-auto.js`, `/api/ingest` | Ingest and auto-scoring now use the same shared scoring core. |
-| Data enrichment and staleness | Implemented, needs scheduling | `scripts/enrich-stale.js`, `/api/ingest` | Detects stale data and can re-ingest artists; needs operational scheduling and run logs. |
-| Follow-up reminders | Implemented, needs UI surfacing | `scripts/followup-remind.js` | Finds due follow-ups and logs reminders; should feed a dashboard queue. |
-| Contact discovery | Implemented, needs confidence persistence | `scripts/discover-contacts.js`, `src/lib/email.ts` | Finds emails but confidence is only in activity notes, not queryable structured data. |
-| Campaign reporting | Implemented, recently aligned to schema | `scripts/report-campaign.js` | Now uses `WON` rather than legacy `CONVERTED`; needs export formats and dashboard integration. |
-| Duplicate detection | Implemented, recently aligned to schema | `scripts/detect-duplicates.js` | Removed non-schema `bandcampUrl` merge field; should add merge audit logging. |
-| Genre standardization | Implemented, recently fixed auto-fix logging | `scripts/standardize-genres.js` | Auto-fix now looks up a lead before writing Activity. |
-| Message delivery | Partially implemented | `scripts/send-messages.js` | IG webhook delivery exists; email path is still placeholder behavior. |
+| Lead scoring | Consolidated | `file src/lib/scoring-core.js`, `file src/lib/scoring.ts`, `file scripts/score-leads.js` | API and CLI scoring now use the same shared scoring c  ore. Scores are capped at 100. |
+| Event-driven scoring | Consolidated | `file scripts/score-auto.js`, `/api/ingest` | Ingest and auto-scoring now use the same shared scoring core. |
+| Data enrichment and staleness | Implemented, needs scheduling | `file scripts/enrich-stale.js`, `/api/ingest` | Detects stale data and can re-ingest artists; needs operational scheduling and run logs. |
+| Follow-up reminders | Implemented, needs UI surfacing |  | Finds due follow-ups and logs reminders; should feed a dashboard queue. |
+| Contact discovery | Implemented, needs confidence persistence | `file scripts/discover-contacts.js`, `file src/lib/email.ts` | Finds emails but confidence is only in activity notes, not queryable structured data. |
+| Campaign reporting | Implemented, recently aligned to schema |  | Now uses `WON` rather than legacy `CONVERTED`; needs export formats and dashboard integration. |
+| Duplicate detection | Implemented, recently aligned to schema |  | Removed non-schema `bandcampUrl` merge field; should add merge audit logging. |
+| Genre standardization | Implemented, recently fixed auto-fix logging |  | Auto-fix now looks up a lead before writing Activity. |
+| Message delivery | Partially implemented |  | IG webhook delivery exists; email path is still placeholder behavior. |
 | Discovery jobs | Implemented | `/api/discover`, `/api/discover/status`, `/api/discover/calendar` | Instagram discovery still uses Apify; venue searches cover 23 active Austin sources, in parallel, with 30-second per-venue limits and individual artist results: 21 Do512 listings, The Cut's official calendar, and Far Out's official event feed. Empire Control Room & Garage is excluded after closure. Venue-calendar imports bypass Apify discovery/profile scraping. |
 | Client projects and portals | Implemented | `src/app/projects`, `src/app/portal/[token]` | Strong base for delivery workflow, feedback, visibility, invoices, and completion ratings. |
 
@@ -40,39 +40,39 @@ The next phase should focus less on adding isolated scripts and more on making t
 
 ### 1. Centralize Scoring Logic
 
-**Status:** ✅ Complete. Shared scoring core in `src/lib/scoring-core.js`. Tests added in `src/lib/scoring-core.test.js`. Run with `npm run test`.
+**Status:** ✅ Complete. Shared scoring core in `file src/lib/scoring-core.js`. Tests added in `file src/lib/scoring-core.test.js`. Run with `npm run test`.
 
 ### 2. Add Agent Run Logging
 
-**Status:** ✅ Complete. `AgentRun` model added to Prisma schema. `src/lib/agent-runner.js` wraps all major CLI scripts: `score-leads`, `score-auto`, `enrich-stale`, `send-messages`, `discover-contacts`, `detect-duplicates`, `standardize-genres`.
+**Status:** ✅ Complete. `AgentRun` model added to Prisma schema. `file src/lib/agent-runner.js` wraps all major CLI scripts: `score-leads`, `score-auto`, `enrich-stale`, `send-messages`, `discover-contacts`, `detect-duplicates`, `standardize-genres`.
 
 ### 3. Surface Action Queues In The UI
 
-**Status:** ✅ Complete. `/operations` page built in `src/app/operations/page.tsx`. Surfaces due follow-ups and high-score uncontacted leads.
+**Status:** ✅ Complete. `/operations` page built in `file src/app/operations/page.tsx`. Surfaces due follow-ups and high-score uncontacted leads.
 
 ### 4. Harden Destructive And Semi-Destructive Jobs
 
-**Status:** ✅ Complete. Both `detect-duplicates.js` and `standardize-genres.js` now default to dry-run. Merge applies Activity audit notes with full artist JSON snapshots. Merge proposals persisted in `MergeProposal` table and marked `APPLIED` after execution.
+**Status:** ✅ Complete. Both `file detect-duplicates.js` and `file standardize-genres.js` now default to dry-run. Merge applies Activity audit notes with full artist JSON snapshots. Merge proposals persisted in `MergeProposal` table and marked `APPLIED` after execution.
 
 ### 5. Complete Message Delivery
 
-**Status:** ✅ Complete. `nodemailer` integrated via `src/lib/email-sender.js`. `send-messages.js` now delivers to email addresses via SMTP using `mail.spacemail.com`. Channel and provider logged in Activity notes.
+**Status:** ✅ Complete. `nodemailer` integrated via `file src/lib/email-sender.js`. `file send-messages.js` now delivers to email addresses via SMTP using `mail.spacemail.com`. Channel and provider logged in Activity notes.
 
 ### 6. Structured Contact Confidence
 
-**Status:** ✅ Complete. `ContactInfo` model added to Prisma schema. `discover-contacts.js` upserts structured records with `confidence`, `score`, `sourceUrl`, and `sourceType`. `Artist.emails` kept in sync for backward compatibility.
+**Status:** ✅ Complete. `ContactInfo` model added to Prisma schema. `file discover-contacts.js` upserts structured records with `confidence`, `score`, `sourceUrl`, and `sourceType`. `Artist.emails` kept in sync for backward compatibility.
 
 ### 7. README Documentation
 
-**Status:** ✅ Complete. `README.md` fully rewritten with setup instructions, environment variable reference, all CLI script docs, the data model overview, and operating notes.
+**Status:** ✅ Complete. `file README.md` fully rewritten with setup instructions, environment variable reference, all CLI script docs, the data model overview, and operating notes.
 
 ## Near-Term Bug And Quality Backlog
 
 | Priority | Item | Suggested Fix |
 | --- | --- | --- |
-| Done | Scoring config drift | Consolidated scoring into `src/lib/scoring-core.js`. |
+| Done | Scoring config drift | Consolidated scoring into `file src/lib/scoring-core.js`. |
 | Done | Score can exceed 100 | Enforced `Math.min(total, 100)` in the shared scoring core. |
-| Done | No test suite for agents | Tests added in `src/lib/scoring-core.test.js` covering all components, cap, and qualification. |
+| Done | No test suite for agents | Tests added in `file src/lib/scoring-core.test.js` covering all components, cap, and qualification. |
 | Done | Contact confidence is not structured | `ContactInfo` model added with `confidence`, `score`, `sourceUrl`, `sourceType`, `discoveredAt`. |
 | Done | Duplicate merge lacks audit trail | Activity notes with JSON artist snapshot on merge; `MergeProposal` table tracks status. |
 | Medium | Agent output contains mixed Unicode/encoding artifacts | Normalize script console output to ASCII or ensure UTF-8 everywhere. |
@@ -96,7 +96,7 @@ Before sending, inspect selected message drafts for missing personalization, dup
 
 ### Reply Triage Agent
 
-**Status:** ✅ Complete. Reply Inbox at `/replies` surfaces all `REPLY_RECEIVED` activities for classification. Triage UI sets intent (`INTERESTED`, `NOT_NOW`, `PRICING_REQUEST`, `WRONG_CONTACT`, `UNSUBSCRIBED`, `BOOKED`, `UNCLEAR`) and auto-transitions lead status. `ReplyTriage` model persists decisions. New `FollowUpSequence` and `LeadSequenceEnrollment` models enable structured multi-step cadences. `scripts/advance-sequences.js` advances enrolled leads on schedule. `scripts/seed-sequences.js` seeds 3 default sequences. API routes: `POST /api/replies/triage`, `GET /api/replies/inbox`, `GET|POST /api/sequences`, `POST /api/sequences/[id]/enroll`.
+**Status:** ✅ Complete. Reply Inbox at `/replies` surfaces all `REPLY_RECEIVED` activities for classification. Triage UI sets intent (`INTERESTED`, `NOT_NOW`, `PRICING_REQUEST`, `WRONG_CONTACT`, `UNSUBSCRIBED`, `BOOKED`, `UNCLEAR`) and auto-transitions lead status. `ReplyTriage` model persists decisions. New `FollowUpSequence` and `LeadSequenceEnrollment` models enable structured multi-step cadences. `file scripts/advance-sequences.js` advances enrolled leads on schedule. `file scripts/seed-sequences.js` seeds 3 default sequences. API routes: `POST /api/replies/triage`, `GET /api/replies/inbox`, `GET|POST /api/sequences`, `POST /api/sequences/[id]/enroll`.
 
 ### Local Scene Intelligence
 
@@ -117,7 +117,7 @@ All 7 items from the original order are complete as of 2026-05-05.
 **Next priorities to consider:**
 
 1. Run `npm run db:migrate` to apply the new `AgentRun`, `ContactInfo`, and `MergeProposal` migrations.
-2. Install `nodemailer` with `npm install` after the updated `package.json` is deployed.
+2. Install `nodemailer` with `npm install` after the updated `file package.json` is deployed.
 3. Build a UI for reviewing `MergeProposal` records (currently DB-only).
 4. Implement Pipeline Health Agent (daily data-quality report).
 5. Implement Lead-to-Project Conversion Agent (auto-create project shell on WON).

@@ -89,6 +89,29 @@ const proxiedHelper = (
   return undefined;
 };
 
+const spotifyEmbedUrl = (release: {
+  spotifyTrackId: string | null;
+  spotifyReleaseId: string | null;
+  url: string | null;
+}) => {
+  if (release.spotifyTrackId) return `https://open.spotify.com/embed/track/${release.spotifyTrackId}`;
+  if (release.spotifyReleaseId) return `https://open.spotify.com/embed/album/${release.spotifyReleaseId}`;
+  if (!release.url) return null;
+
+  try {
+    const url = new URL(release.url);
+    if (url.hostname !== "open.spotify.com" && !url.hostname.endsWith(".spotify.com")) return null;
+    const [type, id] = url.pathname.split("/").filter(Boolean);
+    if ((type === "track" || type === "album") && id) {
+      return `https://open.spotify.com/embed/${type}/${id}`;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+};
+
 const statusOptions: LeadStatus[] = ["NEW", "QUALIFIED", "CONTACTED", "FOLLOW_UP", "WON", "LOST", "PAUSED"];
 
 type LeadDetailPageProps = {
@@ -190,6 +213,7 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
   const [
     releaseRows,
     postRows,
+    latestPost,
     releaseCount,
     postCount,
     allLeadsNav,
@@ -197,9 +221,7 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
     prisma.release.findMany({
       where: releaseWhere,
       orderBy: [
-        { spotifyTrackId: { sort: "desc", nulls: "last" } },
-        { spotifyReleaseId: { sort: "desc", nulls: "last" } },
-        { releaseDate: "desc" },
+        { releaseDate: { sort: "desc", nulls: "last" } },
         { createdAt: "desc" },
       ],
       skip: (releasePage - 1) * releasePageSize,
@@ -210,6 +232,10 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
       orderBy: [{ postedAt: "desc" }, { createdAt: "desc" }],
       skip: (postPage - 1) * postPageSize,
       take: postPageSize,
+    }),
+    prisma.instagramPost.findFirst({
+      where: { artistId: lead.artist.id },
+      orderBy: [{ postedAt: "desc" }, { createdAt: "desc" }],
     }),
     prisma.release.count({ where: releaseWhere }),
     prisma.instagramPost.count({ where: postWhere }),
@@ -250,6 +276,7 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
         ? `https://open.spotify.com/album/${featuredRelease.spotifyReleaseId}`
         : featuredRelease.url
     : null;
+  const featuredReleaseEmbedUrl = featuredRelease ? spotifyEmbedUrl(featuredRelease) : null;
 
   const firstPost = postRows[0] ?? null;
   const instagramAvatar = proxiedHelper(
@@ -517,7 +544,7 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
                     <p className="text-xs text-white/55 leading-relaxed line-clamp-3">{lead.artist.bio || "No Instagram bio available."}</p>
                     <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-white/35">
                       <span>{lead.artist.followerCount?.toLocaleString() || "0"} followers</span>
-                      <span>Last post {formatRelativeDate(lead.artist.lastPostAt)}</span>
+                      <span>Last post {formatRelativeDate(latestPost?.postedAt ?? latestPost?.createdAt)}</span>
                     </div>
                   </div>
                 </div>
@@ -606,20 +633,42 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
                     />
                   </div>
 
-                  {featuredRelease && featuredReleaseUrl ? (
-                    <a
-                      href={featuredReleaseUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex min-h-44 flex-col justify-between rounded-xl border border-white/10 bg-gradient-to-br from-emerald-500/15 via-black/30 to-accent/10 p-5 transition-colors hover:border-emerald-400/40"
-                    >
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-300/80">Latest verified release</p>
-                        <p className="mt-3 text-lg font-semibold text-white">{featuredRelease.title}</p>
-                        <p className="mt-1 text-xs text-white/45">Open on Spotify</p>
+                  {featuredRelease && featuredReleaseEmbedUrl ? (
+                    <div className="space-y-3">
+                      <iframe
+                        title={`Spotify player for ${featuredRelease.title}`}
+                        className="w-full rounded-xl"
+                        src={featuredReleaseEmbedUrl}
+                        height="352"
+                        frameBorder="0"
+                        allowFullScreen
+                        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                        loading="lazy"
+                      />
+                      <div className="flex items-center justify-between gap-3 px-1">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-white">{featuredRelease.title}</p>
+                          <p className="text-xs text-white/45">
+                            Last release {formatRelativeDate(featuredRelease.releaseDate ?? featuredRelease.createdAt)}
+                          </p>
+                        </div>
+                        {featuredReleaseUrl ? (
+                          <a
+                            href={featuredReleaseUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-emerald-300 hover:text-emerald-200"
+                          >
+                            Open ↗
+                          </a>
+                        ) : null}
                       </div>
-                      <span className="text-xs font-bold uppercase tracking-widest text-emerald-300">Listen ↗</span>
-                    </a>
+                    </div>
+                  ) : featuredRelease ? (
+                    <div className="rounded-xl border border-white/10 bg-white/3 p-5">
+                      <p className="text-sm font-semibold text-white">{featuredRelease.title}</p>
+                      <p className="mt-2 text-xs text-white/45">Spotify embed unavailable for this release.</p>
+                    </div>
                   ) : (
                     <p className="text-xs text-white/35">No releases available.</p>
                   )}
