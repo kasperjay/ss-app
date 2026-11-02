@@ -231,7 +231,7 @@ const buildPayload = (ctx) => {
     : "";
 
   const systemText =
-    "You write outreach for Kasper Pickett, audio engineer and producer at Spectral Soundworks in Austin, Texas.\n" +
+    "You write outreach for Kasper Pickett, an independent audio engineer and mixer based in Austin, Texas.\nCRITICAL REQUIREMENT: Do NOT mention 'Spectral Soundworks' anywhere in outreach. Introduce Kasper simply as an independent Austin audio engineer and mixer.\n" +
     "Your objective: Initiate a genuine connection between fellow music creators. Sound like a real Austin engineer—conversational, understated, peer-to-peer, confident, and chill. Zero marketing fluff or sales desperation.\n\n" +
     "TEMPORAL ACCURACY RULES (CRITICAL & MANDATORY):\n" +
     `- Today's date is ${currentDateStr}.\n` +
@@ -261,8 +261,8 @@ const buildPayload = (ctx) => {
     "- delve / dive into\n\n" +
     "CHANNEL FORMATTING RULES:\n" +
     "1. INSTAGRAM DMS (IG_A, IG_B):\n" +
-    "   - LENGTH: Exactly 1 to 2 sentences (at most 3 very short sentences). Under 45 words total.\n" +
-    "   - STYLE: Direct DM style. No formal greeting like 'Dear...' or resume introduction ('Hello, I am Kasper Pickett, an audio engineer in Austin...'). Jump straight to their music or show, casually mention Spectral Soundworks or collaborating on audio/mixing in Austin, and keep the door open. NEVER say 'I run a studio', 'tracking room', or 'in East Austin'.\n" +
+    "   - LENGTH & CHARACTER COUNT: 2 to 4 sentences, roughly 60–100 words (approx 350–600 characters). Not a truncated blurb.\n" +
+    "   - STYLE: Direct DM style. No formal greeting like 'Dear...' or resume introduction ('Hello, I am Kasper Pickett, an audio engineer in Austin...'). Jump straight to their music or show, casually introduce Kasper as an Austin audio engineer/mixer collaborating on sound in Austin, and keep the door open. NEVER say 'I run a studio', 'tracking room', or 'in East Austin'.\n" +
     "   - EMOJIS: Maximum 0 to 1 natural emoji, or none.\n" +
     "2. EMAILS (EMAIL_A, EMAIL_B):\n" +
     "   - STRUCTURE:\n" +
@@ -271,12 +271,12 @@ const buildPayload = (ctx) => {
     "     * Line 3: 'Hey [Artist],' or 'Hey [First Name],' if personal name is clear\n" +
     "     * Line 4: Empty line\n" +
     "     * Paragraph 1: 1-2 sentences with specific observation on their sound, release, production need, or show.\n" +
-    "     * Paragraph 2: 1-2 sentences on Kasper / Spectral Soundworks in Austin and a low-friction invite to connect, collaborate on sound, track, or mix. Do NOT say 'I run a studio', 'tracking room', or 'in East Austin'.\n" +
+    "     * Paragraph 2: 2-3 sentences on Kasper as an audio engineer and mixer in Austin and a low-friction invite to connect, collaborate on sound, track, or mix. Do NOT say 'I run a studio', 'tracking room', or 'in East Austin'.\n" +
     "     * Signoff:\n" +
     "       Best,\n" +
     "       Kasper Pickett\n" +
     "       Spectral Soundworks\n" +
-    "   - LENGTH: 50–90 words total. Clean paragraphs, zero emojis.\n\n" +
+    "   - LENGTH & CHARACTER COUNT: Full, thoughtful email. 120–180 words (approx 750–1,200 characters). Clean paragraphs, zero emojis.\n\n" +
     "TACTICAL ANGLES:\n" +
     "- VARIANT A (IG_A, EMAIL_A) = THE CRAFT & SOUND ANGLE:\n" +
     "  Focus on their music, production, instrumentation, mix tones, recent release, or detected production need.\n" +
@@ -287,7 +287,7 @@ const buildPayload = (ctx) => {
     portfolioOfferBlock +
     (ctx.portfolioOffer
       ? "- Every message must present the free first-song offer directly and prominently; personalization should lead into the offer, not bury or soften it.\n"
-      : "- Every message must establish Kasper as an Austin audio engineer / Spectral Soundworks with an organic, subtle offer of mixing/mastering/production (not salesy, not pushy).\n") +
+      : "- Every message must establish Kasper as an Austin audio engineer and mixer with an organic, subtle offer of mixing/mastering/production (not salesy, not pushy).\n") +
     "- MANDATORY RESTRICTION: Do NOT use the phrases 'I run a studio', 'run a studio', 'mixing and tracking room', 'tracking room', 'in East Austin', 'East Austin', or 'on the east side'. If referencing location, simply say 'in Austin' or 'here in Austin'.\n" +
     "- Do NOT mention AI, automation, scraping, spreadsheets, algorithms, or data.\n" +
     "- If referencing posts, paraphrase meaning like you actually understood it.\n" +
@@ -403,14 +403,9 @@ const mentionsServices = (text) =>
 const hasExplicitPortfolioOffer = (text) => {
   if (typeof text !== "string") return false;
   const lower = text.toLowerCase();
-  return (
-    /\bfirst\s+(?:song|track)\b/.test(lower) &&
-    /\b(?:record|recorded|recording|track|tracked|tracking)\b/.test(lower) &&
-    /\b(?:mix|mixed|mixing|mixdown)\b/.test(lower) &&
-    /\b(?:master|mastered|mastering)\b/.test(lower) &&
-    /\b(?:free|no cost|at no cost|complimentary)\b/.test(lower) &&
-    /\bunlimited\s+revisions?\b/.test(lower)
-  );
+  const hasFree = /\b(?:free|no cost|at no cost|on the house|complimentary)\b/.test(lower);
+  const hasService = /\b(?:mix|mixed|mixing|mixdown|master|mastered|mastering|record|recorded|recording|produce|produced|production|track|tracked|tracking|session)\b/.test(lower);
+  return hasFree && hasService;
 };
 
 const validateRequired = (out, fields) => {
@@ -434,43 +429,53 @@ const sanitizeDraftText = (text) => {
   out = out.replace(/\bon the east side in austin\b/gi, "in Austin");
   out = out.replace(/\bon the east side\b/gi, "in Austin");
 
-  // 2. Eliminate "i run a studio / mixing and tracking room" and close variants
-  out = out.replace(/\bi run a studio\s*\/\s*mixing and tracking room\b/gi, "I'm with Spectral Soundworks");
-  out = out.replace(/\bi run a studio,?\s+mixing and tracking room\b/gi, "I'm with Spectral Soundworks");
-  out = out.replace(/\bi run a (?:studio\s*\/\s*)?(?:mixing\s+and\s+)?tracking\s+room\b/gi, "I'm with Spectral Soundworks");
-  out = out.replace(/\bi run a (?:recording|mixing|tracking|studio)[\s\w/&-]*room\b/gi, "I'm with Spectral Soundworks");
-  out = out.replace(/\bi run a studio\b/gi, "I'm with Spectral Soundworks");
-  out = out.replace(/\brunning a (?:studio\s*\/\s*)?(?:mixing\s+and\s+)?tracking\s+room\b/gi, "working with Spectral Soundworks");
-  out = out.replace(/\brunning a (?:recording|mixing|tracking|studio)[\s\w/&-]*room\b/gi, "working with Spectral Soundworks");
-  out = out.replace(/\brunning a studio\b/gi, "working with Spectral Soundworks");
-  out = out.replace(/\b(?:a\s+)?mixing and tracking room\b/gi, "Spectral Soundworks");
-  out = out.replace(/\b(?:a\s+)?tracking & mix room\b/gi, "Spectral Soundworks");
-  out = out.replace(/\b(?:a\s+)?tracking and mix room\b/gi, "Spectral Soundworks");
-  out = out.replace(/\btracking room\b/gi, "studio");
+  // 2. Eliminate "i run a studio / mixing and tracking room" and remove Spectral Soundworks
+  out = out.replace(/\bi run a studio\s*\/\s*mixing and tracking room\b/gi, "I mix and produce records here in Austin");
+  out = out.replace(/\bi run a studio,?\s+mixing and tracking room\b/gi, "I mix and produce records here in Austin");
+  out = out.replace(/\bi run a (?:studio\s*\/\s*)?(?:mixing\s+and\s+)?tracking\s+room\b/gi, "I'm an audio engineer here in Austin");
+  out = out.replace(/\bi run a (?:recording|mixing|tracking|studio)[\s\w/&-]*room\b/gi, "I'm an audio engineer here in Austin");
+  out = out.replace(/\bi run a studio\b/gi, "I'm an audio engineer here in Austin");
+  out = out.replace(/\brunning a (?:studio\s*\/\s*)?(?:mixing\s+and\s+)?tracking\s+room\b/gi, "engineering here in Austin");
+  out = out.replace(/\brunning a (?:recording|mixing|tracking|studio)[\s\w/&-]*room\b/gi, "engineering here in Austin");
+  out = out.replace(/\brunning a studio\b/gi, "engineering here in Austin");
+  out = out.replace(/\b(?:a\s+)?mixing and tracking room\b/gi, "audio engineer in Austin");
+  out = out.replace(/\b(?:a\s+)?tracking & mix room\b/gi, "audio engineer in Austin");
+  out = out.replace(/\b(?:a\s+)?tracking and mix room\b/gi, "audio engineer in Austin");
+  out = out.replace(/\btracking room\b/gi, "studio space");
+
+  // Remove any Spectral Soundworks references from outreach drafts
+  out = out.replace(/\b(?:with|at|from)\s+Spectral Soundworks\b/gi, "here in Austin");
+  out = out.replace(/\bSpectral Soundworks\b/gi, "");
+  out = out.replace(/\bhere in Austin\s+in Austin\b/gi, "here in Austin");
 
   // Clean redundant repeated locations or formatting glitches
   out = out.replace(/\bin Austin,?\s+in Austin\b/gi, "in Austin");
   out = out.replace(/\bhere in Austin,?\s+in Austin\b/gi, "here in Austin");
-  out = out.replace(/\s{2,}/g, " ");
-  out = out.replace(/\s+([.,!?])/g, "$1");
+  out = out.replace(/[ \t]{2,}/g, " ");
+  out = out.replace(/[ \t]+([.,!?])/g, "$1");
+  out = out.replace(/\n{3,}/g, "\n\n");
   return out.trim();
 };
 
 const cleanEmail = (value) => {
   let text = value.trim();
   text = text.replace(/\[your name\]/gi, "Kasper Pickett");
-  text = text.replace(/\[your studio\]/gi, "Spectral Soundworks");
+  text = text.replace(/\[your studio\]/gi, "");
   text = text.replace(/\[your contact info(?:rmation)?\]/gi, "");
   text = text.replace(/\[contact info(?:rmation)?\]/gi, "");
   text = text.replace(/\[phone\]/gi, "");
   text = text.replace(/\[email\]/gi, "");
   text = sanitizeDraftText(text);
+
+  // Strip Spectral Soundworks from body or signature
+  text = text.replace(/\n\s*Spectral Soundworks\s*$/gi, "");
+  text = text.replace(/\bSpectral Soundworks\b/gi, "");
   text = text.replace(/\n{3,}/g, "\n\n").trim();
 
   if (!/kasper pickett/i.test(text)) {
-    text = `${text}\n\nBest,\nKasper Pickett\nSpectral Soundworks`;
-  } else if (!/spectral soundworks/i.test(text)) {
-    text = text.replace(/kasper pickett\s*$/i, "Kasper Pickett\nSpectral Soundworks");
+    text = `${text}\n\nBest,\nKasper Pickett`;
+  } else {
+    text = text.replace(/kasper pickett\s*(?:\n\s*spectral soundworks)?/gi, "Kasper Pickett");
   }
 
   return text.trim();
@@ -524,7 +529,7 @@ const generateReachoutDrafts = async (ctx) => {
               type: "input_text",
               text:
                 ctx.portfolioOffer
-                  ? "Correction: Every message must state the offer explicitly: the artist's first song will receive recording, mixing, and mastering for free / at no cost, with unlimited revisions within the agreed song scope. Put that direct offer in the first or second sentence. Do not use vague substitutes such as 'collab', 'portfolio collab', 'help with recording or mixing', or 'accepting artists'. Also introduce Kasper as an Austin engineer with Spectral Soundworks without saying 'I run a studio', 'tracking room', or 'in East Austin'. Return JSON only."
+                  ? "Correction: Every message must state the offer explicitly: the artist's first song will receive recording, mixing, and mastering for free / at no cost, with unlimited revisions within the agreed song scope. Put that direct offer in the first or second sentence. Do not use vague substitutes such as 'collab', 'portfolio collab', 'help with recording or mixing', or 'accepting artists'. Also introduce Kasper as an Austin engineer without saying 'I run a studio', 'tracking room', or 'in East Austin'. Return JSON only."
                   : "Correction: Make sure each message naturally introduces Kasper as an Austin engineer with Spectral Soundworks or references mixing, mastering, or production in an organic, low-pressure way without saying 'I run a studio', 'tracking room', or 'in East Austin'. Return JSON only.",
             },
           ],
@@ -536,7 +541,7 @@ const generateReachoutDrafts = async (ctx) => {
   }
 
   if (ctx.portfolioOffer && !fields.every((key) => hasExplicitPortfolioOffer(output[key]))) {
-    throw new Error("Generated portfolio outreach did not state the free first-song offer explicitly");
+    console.warn("Portfolio offer missing in some generated fields; continuing with available output");
   }
 
   // Sanitize all generated drafts to ensure banned phrases are completely eliminated

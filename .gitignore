@@ -57,5 +57,6 @@ full_chat_conversation.csv
 .agents/
 .superpowers/
 
-# Database dumps
+# Database dumps & persistent cluster data
 *.sql
+.pgdata/

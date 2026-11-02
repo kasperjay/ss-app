@@ -489,6 +489,25 @@ async function fetchHtml(url: string, signal: AbortSignal): Promise<string> {
   throw lastError || new Error("Calendar request failed.");
 }
 
+async function fetchJson(url: string, signal: AbortSignal): Promise<unknown> {
+  await acquireHttpRequestSlot(signal);
+  try {
+    const response = await fetch(url, {
+      headers: { accept: "application/json" },
+      redirect: "follow",
+      signal,
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error(`Calendar request returned ${response.status}.`);
+    return await response.json();
+  } catch (error) {
+    if (signal.aborted) throw scraperTimeoutError();
+    throw error instanceof Error ? error : new Error("Calendar request failed.");
+  } finally {
+    releaseHttpRequestSlot();
+  }
+}
+
 async function mapLimit<T, U>(items: T[], limit: number, signal: AbortSignal, task: (item: T) => Promise<U>): Promise<U[]> {
   const output = new Array<U>(items.length);
   let nextIndex = 0;
@@ -605,6 +624,59 @@ export async function scrapeDo512Venue(venue: Venue, now = new Date()): Promise<
     };
   } catch (error) {
     if (controller.signal.aborted) throw new Error("Venue scraper timed out after 30 seconds.");
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const FAR_OUT_EVENTS_URL = "https://fol-event-management.firebaseio.com/events.json";
+
+export async function scrapeFarOutVenue(venue: Venue, now = new Date()): Promise<VenueScrapeResult> {
+  const end = eventWindow(now);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SCRAPER_TIMEOUT_MS);
+
+  try {
+    const payload = await fetchJson(FAR_OUT_EVENTS_URL, controller.signal);
+    const events = payload && typeof payload === "object" ? Object.entries(payload as Record<string, unknown>) : [];
+    const candidates = events.flatMap(([id, value]) => {
+      if (!value || typeof value !== "object") return [];
+      const metadata = (value as Record<string, unknown>).metadata;
+      if (!metadata || typeof metadata !== "object") return [];
+      const record = metadata as Record<string, unknown>;
+      if (record.isPublished !== true || typeof record.date !== "string" || typeof record.title !== "string") return [];
+      const occurrence = parseCalendarDate(record.date);
+      if (!occurrence || !occurrenceIsWithinWindow(occurrence, now, end)) return [];
+      return [{
+        id,
+        title: normalizeText(record.title),
+        eventDate: occurrence.eventDate,
+        eventDateOnly: occurrence.dateOnly,
+        eventUrl: `https://www.thefaroutaustin.com/eventDetails.html#${encodeURIComponent(id)}`,
+        description: normalizeText(typeof record.longDescription === "string" ? record.longDescription : record.shortDescription as string),
+      }];
+    });
+
+    const items = candidates.flatMap((event) => splitArtistTitle(event.title).map((artist) => ({
+      artist,
+      eventTitle: event.title,
+      eventDate: event.eventDate,
+      eventDateOnly: event.eventDateOnly,
+      venueName: venue.name,
+      eventUrl: event.eventUrl,
+      sourceUrl: event.eventUrl,
+      description: event.description || undefined,
+    })));
+
+    return {
+      items,
+      eventsFound: candidates.length,
+      eventPagesRead: 0,
+      warnings: [],
+    };
+  } catch (error) {
+    if (controller.signal.aborted) throw scraperTimeoutError();
     throw error;
   } finally {
     clearTimeout(timer);

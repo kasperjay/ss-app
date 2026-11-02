@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { triggerIgReplyNotification } from "@/lib/novu";
 import { markRespondedRow } from "@/lib/google-sheets";
+import { pauseActiveEnrollmentsForLead } from "@/lib/sequence-close-service";
 
 /**
  * GET /api/ig/meta-webhook
@@ -113,14 +114,24 @@ export async function POST(req: NextRequest) {
               },
             });
 
-            // Bump CONTACTED → FOLLOW_UP
+            await pauseActiveEnrollmentsForLead({
+              leadId,
+              reason: "artist replied on Instagram",
+            });
+
             const lead = artist.leads[0];
-            if (lead.status === "CONTACTED") {
-              await prisma.lead.update({
-                where: { id: leadId },
-                data: { status: "FOLLOW_UP" },
-              });
-            }
+            const shouldBumpToFollowUp = ["NEW", "QUALIFIED", "CONTACTED"].includes(
+              lead.status
+            );
+            await prisma.lead.update({
+              where: { id: leadId },
+              data: {
+                ...(shouldBumpToFollowUp ? { status: "FOLLOW_UP" } : {}),
+                followUpActionType: "DM",
+                nextActionAt:
+                  lead.nextActionAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000),
+              },
+            });
 
             await markRespondedRow(artistName);
 

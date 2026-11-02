@@ -1,4 +1,4 @@
-import { VENUES } from "./config";
+import { VENUES, getVenue } from "./config";
 import type { VenueId } from "./config";
 import type { VenueScrapeResult } from "./shared";
 import { scrapeAntones } from "./antones";
@@ -18,6 +18,13 @@ import { scrapeSaxonPub } from "./saxon-pub";
 import { scrapeScootInn } from "./scoot-inn";
 import { scrapeTheCut } from "./the-cut";
 import { scrapeValhallaTavern } from "./valhalla-tavern";
+import { scrapeCheerUpCharlies } from "./cheer-up-charlies";
+import { scrapeSwanDive } from "./swan-dive";
+import { scrapeChessClub } from "./chess-club";
+import { scrapeHoleInTheWall } from "./hole-in-the-wall";
+import { scrapeFarOutVenue } from "./shared";
+import { scrapeCarouselLounge } from "./carousel-lounge";
+import { scrapeKickButtCoffee } from "./kick-butt-coffee";
 
 export { ACTIVE_VENUES, MVP_VENUES, VENUES, getVenue, isVenueActive } from "./config";
 export type { VenueId, Venue, VenueSource } from "./config";
@@ -41,6 +48,13 @@ const scrapers: Record<VenueId, (now?: Date) => Promise<VenueScrapeResult>> = {
   "broken-spoke": scrapeBrokenSpoke,
   "3ten": scrape3Ten,
   "valhalla-tavern": scrapeValhallaTavern,
+  "cheer-up-charlies": scrapeCheerUpCharlies,
+  "swan-dive": scrapeSwanDive,
+  "chess-club": scrapeChessClub,
+  "hole-in-the-wall": scrapeHoleInTheWall,
+  "far-out-lounge": (now) => scrapeFarOutVenue(getVenue("far-out-lounge"), now),
+  "carousel-lounge": scrapeCarouselLounge,
+  "kick-butt-coffee": scrapeKickButtCoffee,
 };
 
 export function getVenueScraper(id: VenueId) {

@@ -50,6 +50,8 @@ const AUSTIN_VENUES = [
   "come and take it", "continental club", "continental gallery", "hotel vegas",
   "volstead", "antone", "mohawk", "empire control", "haute spot",
   "parker jazz", "the cut", "scoot inn", "saxon pub", "elephant room",
+  "cheer up charlies", "swan dive", "chess club", "hole in the wall", "far out lounge",
+  "carousel lounge", "kick butt coffee",
   "c-boy", "broken spoke", "3ten", "valhalla", "cheer up charlie",
   "the parish", "far out lounge", "stubbs", "emo's",
 ];

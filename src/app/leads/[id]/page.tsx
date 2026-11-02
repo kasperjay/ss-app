@@ -1,6 +1,5 @@
 export const dynamic = "force-dynamic";
 
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -16,15 +15,17 @@ import { EditableArtistName } from "@/components/EditableArtistName";
 import { EditableArtistLocation } from "@/components/EditableArtistLocation";
 import { EditableSpotifyProfile } from "@/components/EditableSpotifyProfile";
 import LeadBottomNavigation from "@/components/LeadBottomNavigation";
+import { LeadWorkflowPanel } from "@/components/LeadWorkflowPanel";
 import {
   generateDraftsForLead,
   refreshLeadData,
   regenerateDraft,
   regenerateAllDrafts,
   updateLeadStatus,
-  trashLeadAction,
 } from "./actions";
 import { buildBookingUrl } from "@/lib/google-calendar";
+import { ensureDefaultSequences } from "@/lib/sequence-close-service";
+import type { SequenceStepDef } from "@/lib/reply-to-close-core";
 
 const formatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 
@@ -66,14 +67,6 @@ const proxiedHelper = (url: string | null) => {
     return `/api/proxy?url=${encodeURIComponent(url)}`;
   }
   return undefined;
-};
-
-const normalizeHex = (value?: string | null) => {
-  if (!value) return null;
-  const cleaned = value.trim().replace(/^#/, "");
-  if (/^[0-9a-fA-F]{3}$/.test(cleaned)) return `#${cleaned}`;
-  if (/^[0-9a-fA-F]{6}$/.test(cleaned)) return `#${cleaned}`;
-  return null;
 };
 
 const statusOptions: LeadStatus[] = ["NEW", "QUALIFIED", "CONTACTED", "FOLLOW_UP", "WON", "LOST", "PAUSED"];
@@ -167,7 +160,18 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
     ],
   };
 
-  const [releaseRows, postRows, releaseCount, postCount, allLeadsNav] = await Promise.all([
+  await ensureDefaultSequences();
+
+  const [
+    releaseRows,
+    postRows,
+    releaseCount,
+    postCount,
+    allLeadsNav,
+    sequences,
+    enrollments,
+    activeProject,
+  ] = await Promise.all([
     prisma.release.findMany({
       where: releaseWhere,
       orderBy: [
@@ -198,6 +202,26 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
       },
       orderBy: [{ score: "desc" }, { updatedAt: "desc" }, { id: "desc" }],
     }),
+    prisma.followUpSequence.findMany({
+      orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        isDefault: true,
+        steps: true,
+      },
+    }),
+    prisma.leadSequenceEnrollment.findMany({
+      where: { leadId: lead.id },
+      include: { sequence: true },
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.project.findFirst({
+      where: { artistId: lead.artist.id, status: "ACTIVE" },
+      include: { invoice: true },
+      orderBy: { updatedAt: "desc" },
+    }),
   ]);
 
   const leadIndex = allLeadsNav.findIndex((l) => l.id === id);
@@ -219,9 +243,10 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
   const featuredRelease = releaseRows[0] ?? null;
 
   const instagramAvatar = proxiedHelper(lead.artist.instagramProfileImageUrl ?? postRows[0]?.imageUrl ?? null);
-  const releaseDate = featuredRelease?.releaseDate ?? featuredRelease?.createdAt ?? null;
 
-  const reachoutDrafts = lead.messages.filter((m) => !m.selected && m.source === "reachout");
+  const reachoutDrafts = lead.messages.filter(
+    (m) => !m.selected && (m.source === "reachout" || Boolean(m.source?.startsWith("sequence:")))
+  );
   const igDrafts = reachoutDrafts.filter((m) => !m.tone?.toLowerCase().includes("email"));
   const emailDrafts = reachoutDrafts.filter((m) => m.tone?.toLowerCase().includes("email"));
 
@@ -232,11 +257,6 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
   const emailDraftSlice = emailDrafts.slice((emailDraftPage - 1) * draftPageSize, emailDraftPage * draftPageSize);
 
   const score = lead.score?.toFixed(0) || "0";
-  const palette = [
-    normalizeHex(lead.artist.spotifyAccent),
-    normalizeHex(lead.artist.spotifyAccentStrong),
-    normalizeHex(lead.artist.spotifyHighlight),
-  ].filter((v, i, arr): v is string => Boolean(v) && arr.indexOf(v) === i);
 
   const accentColors = {
     accent: lead.artist.spotifyAccent ?? "#00f2ff",
@@ -244,81 +264,140 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
     highlight: lead.artist.spotifyHighlight ?? "#ffffff",
   };
 
-  const renderDraftCard = (message: (typeof reachoutDrafts)[number]) => (
-    <GlassCard key={message.id} className="p-6! bg-white/2 border-white/5 hover:border-accent/20">
-      <div className="flex flex-col gap-5">
-        <div className="flex items-center justify-between">
-          <span className="px-3 py-1 rounded-full bg-accent/10 text-xs font-bold text-accent uppercase tracking-widest border border-accent/20">
-            {message.tone || "Draft"}
-          </span>
-          <DraftCopy text={message.body} />
-        </div>
+  const serializedSequences = sequences.map((seq) => ({
+    id: seq.id,
+    name: seq.name,
+    description: seq.description,
+    isDefault: seq.isDefault,
+    steps: Array.isArray(seq.steps) ? (seq.steps as unknown as SequenceStepDef[]) : [],
+  }));
 
-        <p className="text-base text-white/80 leading-relaxed font-serif italic pl-4 border-l-2 border-accent/30">
-          &quot;{message.body}&quot;
-        </p>
+  const serializedEnrollments = enrollments.map((enr) => ({
+    id: enr.id,
+    sequenceId: enr.sequenceId,
+    currentStep: enr.currentStep,
+    startedAt: enr.startedAt.toISOString(),
+    completedAt: enr.completedAt?.toISOString() ?? null,
+    pausedAt: enr.pausedAt?.toISOString() ?? null,
+    status: enr.status,
+    sequence: {
+      id: enr.sequence.id,
+      name: enr.sequence.name,
+      steps: Array.isArray(enr.sequence.steps)
+        ? (enr.sequence.steps as unknown as SequenceStepDef[])
+        : [],
+    },
+  }));
 
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/5">
-          <details className="relative group/details">
-            <summary className="list-none cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/50 hover:text-white transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 8 6 6 6-6" /></svg>
-              Tune Variant
-            </summary>
-            <div className="absolute left-0 bottom-full mb-4 z-20 w-56 rounded-2xl border border-white/10 bg-[#0f0f13] p-2 shadow-2xl">
-              <div className="group/tone relative">
-                <div className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-widest text-white/50 hover:text-accent hover:bg-white/5 transition-colors cursor-default">
-                  Change Tone
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-                </div>
-                <div className="hidden group-hover/tone:block absolute left-full bottom-0 before:content-[''] before:absolute before:top-0 before:-left-3 before:w-3 before:h-full before:z-10 pl-3 w-48 rounded-2xl border border-white/10 bg-[#0f0f13] p-2 shadow-2xl animate-in fade-in slide-in-from-left-2 transition-all">
-                  {["professional", "casual"].map((hint) => (
-                    <form key={hint} action={regenerateDraft}>
-                      <input type="hidden" name="leadId" value={lead.id} />
-                      <input type="hidden" name="draftId" value={message.id} />
-                      <input type="hidden" name="tone" value={message.tone || "Draft"} />
-                      <input type="hidden" name="styleHint" value={`more ${hint}`} />
-                      <button type="submit" className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-widest text-white/50 hover:text-accent hover:bg-white/5 transition-colors">
-                        more {hint}
-                      </button>
-                    </form>
-                  ))}
-                </div>
-              </div>
+  const serializedActiveProject = activeProject
+    ? {
+        id: activeProject.id,
+        title: activeProject.title,
+        portalToken: activeProject.portalToken,
+        workflowStage: activeProject.workflowStage,
+        paywallDeliverables: activeProject.paywallDeliverables,
+        invoice: activeProject.invoice
+          ? {
+              id: activeProject.invoice.id,
+              invoiceNumber: activeProject.invoice.invoiceNumber,
+              status: activeProject.invoice.status,
+              totalCents: activeProject.invoice.totalCents,
+            }
+          : null,
+      }
+    : null;
 
-              <div className="group/style relative mt-1">
-                <div className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-widest text-white/50 hover:text-accent hover:bg-white/5 transition-colors cursor-default">
-                  Change Style
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-                </div>
-                <div className="hidden group-hover/style:block absolute left-full bottom-0 before:content-[''] before:absolute before:top-0 before:-left-3 before:w-3 before:h-full before:z-10 pl-3 w-48 rounded-2xl border border-white/10 bg-[#0f0f13] p-2 shadow-2xl animate-in fade-in slide-in-from-left-2 transition-all">
-                  {["boring", "fun"].map((hint) => (
-                    <form key={hint} action={regenerateDraft}>
-                      <input type="hidden" name="leadId" value={lead.id} />
-                      <input type="hidden" name="draftId" value={message.id} />
-                      <input type="hidden" name="tone" value={message.tone || "Draft"} />
-                      <input type="hidden" name="styleHint" value={`more ${hint}`} />
-                      <button type="submit" className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-widest text-white/50 hover:text-accent hover:bg-white/5 transition-colors">
-                        more {hint}
-                      </button>
-                    </form>
-                  ))}
-                </div>
-              </div>
+  const renderDraftCard = (message: (typeof reachoutDrafts)[number]) => {
+    const isSequenceDraft = Boolean(message.source?.startsWith("sequence:"));
+    return (
+      <GlassCard key={message.id} className="p-6! bg-white/2 border-white/5 hover:border-accent/20">
+        <div className="flex flex-col gap-5">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-3 py-1 rounded-full bg-accent/10 text-xs font-bold text-accent uppercase tracking-widest border border-accent/20">
+                {message.tone || "Draft"}
+              </span>
+              {isSequenceDraft && (
+                <span className="px-2.5 py-1 rounded-md bg-emerald-400/10 text-[10px] font-bold text-emerald-300 uppercase tracking-widest border border-emerald-400/30">
+                  Sequence Step
+                </span>
+              )}
             </div>
-          </details>
+            <DraftCopy text={message.body} />
+          </div>
 
-          <SendMessageModal
-            leadId={lead.id}
-            label="Review + Send"
-            defaultBody={message.body}
-            source="draft"
-            tone={message.tone ?? undefined}
-            variant="primary"
-          />
+          <p className="text-base text-white/80 leading-relaxed font-serif italic pl-4 border-l-2 border-accent/30">
+            &quot;{message.body}&quot;
+          </p>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-white/5">
+            {message.source === "reachout" ? (
+              <details className="relative group/details">
+                <summary className="list-none cursor-pointer flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/50 hover:text-white transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 8 6 6 6-6" /></svg>
+                  Tune Variant
+                </summary>
+                <div className="absolute left-0 bottom-full mb-4 z-20 w-56 rounded-2xl border border-white/10 bg-[#0f0f13] p-2 shadow-2xl">
+                  <div className="group/tone relative">
+                    <div className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-widest text-white/50 hover:text-accent hover:bg-white/5 transition-colors cursor-default">
+                      Change Tone
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+                    </div>
+                    <div className="hidden group-hover/tone:block absolute left-full bottom-0 before:content-[''] before:absolute before:top-0 before:-left-3 before:w-3 before:h-full before:z-10 pl-3 w-48 rounded-2xl border border-white/10 bg-[#0f0f13] p-2 shadow-2xl animate-in fade-in slide-in-from-left-2 transition-all">
+                      {["professional", "casual"].map((hint) => (
+                        <form key={hint} action={regenerateDraft}>
+                          <input type="hidden" name="leadId" value={lead.id} />
+                          <input type="hidden" name="draftId" value={message.id} />
+                          <input type="hidden" name="tone" value={message.tone || "Draft"} />
+                          <input type="hidden" name="styleHint" value={`more ${hint}`} />
+                          <button type="submit" className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-widest text-white/50 hover:text-accent hover:bg-white/5 transition-colors">
+                            more {hint}
+                          </button>
+                        </form>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="group/style relative mt-1">
+                    <div className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-widest text-white/50 hover:text-accent hover:bg-white/5 transition-colors cursor-default">
+                      Change Style
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+                    </div>
+                    <div className="hidden group-hover/style:block absolute left-full bottom-0 before:content-[''] before:absolute before:top-0 before:-left-3 before:w-3 before:h-full before:z-10 pl-3 w-48 rounded-2xl border border-white/10 bg-[#0f0f13] p-2 shadow-2xl animate-in fade-in slide-in-from-left-2 transition-all">
+                      {["boring", "fun"].map((hint) => (
+                        <form key={hint} action={regenerateDraft}>
+                          <input type="hidden" name="leadId" value={lead.id} />
+                          <input type="hidden" name="draftId" value={message.id} />
+                          <input type="hidden" name="tone" value={message.tone || "Draft"} />
+                          <input type="hidden" name="styleHint" value={`more ${hint}`} />
+                          <button type="submit" className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-bold uppercase tracking-widest text-white/50 hover:text-accent hover:bg-white/5 transition-colors">
+                            more {hint}
+                          </button>
+                        </form>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </details>
+            ) : (
+              <span className="text-[11px] font-semibold text-white/40">
+                Ready for review &amp; send
+              </span>
+            )}
+
+            <SendMessageModal
+              leadId={lead.id}
+              label="Review + Send"
+              defaultBody={message.body}
+              source={message.source ?? "draft"}
+              tone={message.tone ?? undefined}
+              variant="primary"
+            />
+          </div>
         </div>
-      </div>
-    </GlassCard>
-  );
+      </GlassCard>
+    );
+  };
 
   return (
     <DynamicThemeShell imageUrl={themeImageUrl} artistName={lead.artist.name} genre={lead.artist.genre} accentColors={accentColors}>
@@ -451,6 +530,24 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
               </div>
             </div>
 
+            <LeadWorkflowPanel
+              lead={{
+                id: lead.id,
+                status: lead.status,
+                nextActionAt: lead.nextActionAt?.toISOString() ?? null,
+                followUpActionType: lead.followUpActionType ?? null,
+                artist: {
+                  name: lead.artist.name,
+                  followerCount: lead.artist.followerCount ?? null,
+                  instagramHandle: lead.artist.instagramHandle ?? null,
+                  emails: lead.artist.emails ?? [],
+                },
+              }}
+              sequences={serializedSequences}
+              enrollments={serializedEnrollments}
+              activeProject={serializedActiveProject}
+            />
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <GlassCard className="p-6! bg-white/2 border-white/5">
                 <div className="flex items-start gap-4 mb-6">
@@ -578,7 +675,7 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
 
             <div className="space-y-6">
               <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-white/25">Generated Replies</h3>
+                <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-white/25">Outreach Drafts</h3>
                 <form action={regenerateAllDrafts}>
                   <input type="hidden" name="leadId" value={lead.id} />
                   <button

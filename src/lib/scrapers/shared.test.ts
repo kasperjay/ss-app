@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ACTIVE_VENUES, MVP_VENUES, isVenueActive } from "./config";
 import { getVenueScraper } from "./index";
-import { scrapeDo512Venue, scrapeTheCutVenue, splitArtistTitle } from "./shared";
+import { scrapeDo512Venue, scrapeFarOutVenue, scrapeTheCutVenue, splitArtistTitle } from "./shared";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -42,6 +42,13 @@ describe("direct venue calendar scrapers", () => {
       "broken-spoke",
       "3ten",
       "valhalla-tavern",
+      "cheer-up-charlies",
+      "swan-dive",
+      "chess-club",
+      "hole-in-the-wall",
+      "far-out-lounge",
+      "carousel-lounge",
+      "kick-butt-coffee",
     ]);
     expect(ACTIVE_VENUES.every((venue) => typeof getVenueScraper(venue.id) === "function")).toBe(true);
     expect(isVenueActive("empire-atx")).toBe(false);
@@ -216,4 +223,40 @@ describe("direct venue calendar scrapers", () => {
     expect(result.eventPagesRead).toBe(1);
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("cross-host"), expect.anything());
   });
+
+  it("reads Far Out's published Firebase event feed and splits music bills", async () => {
+    const now = new Date("2026-10-10T18:00:00.000Z");
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
+      expect(String(input)).toBe("https://fol-event-management.firebaseio.com/events.json");
+      return new Response(JSON.stringify({
+        event_one: {
+          metadata: {
+            date: "Sat Oct 24 2026 19:00:00 GMT-0500 (Central Daylight Time)",
+            isPublished: true,
+            title: "Headliner w/ Support Artist",
+            shortDescription: "Live at Far Out",
+          },
+        },
+        old_event: {
+          metadata: {
+            date: "Sat Sep 24 2026 19:00:00 GMT-0500 (Central Daylight Time)",
+            isPublished: true,
+            title: "Old Show",
+          },
+        },
+      }), { headers: { "content-type": "application/json" } });
+    }));
+
+    const venue = ACTIVE_VENUES.find((item) => item.id === "far-out-lounge")!;
+    const result = await scrapeFarOutVenue(venue, now);
+
+    expect(result.eventsFound).toBe(1);
+    expect(result.items.map((item) => item.artist)).toEqual(["Headliner", "Support Artist"]);
+    expect(result.items[0]).toMatchObject({
+      venueName: "The Far Out Lounge",
+      eventUrl: "https://www.thefaroutaustin.com/eventDetails.html#event_one",
+      description: "Live at Far Out",
+    });
+  });
+
 });

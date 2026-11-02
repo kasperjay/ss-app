@@ -13,7 +13,7 @@ An internal CRM and automation platform for managing artist leads, outreach, and
 | **ORM** | Prisma 7 with `@prisma/adapter-pg` |
 | **Styling** | Tailwind CSS 4 |
 | **Automation** | Node.js CLI agent scripts |
-| **Discovery** | Self-hosted calendar scrapers for 16 active Austin venues (15 Do512 listings and The Cut's official calendar); venue searches and imports bypass Apify, while Instagram discovery remains Apify-backed |
+| **Discovery** | Self-hosted calendar discovery for 23 active Austin venues (21 Do512 listings, The Cut's official calendar, and Far Out's official feed); venue searches and imports bypass Apify, while Instagram discovery remains Apify-backed |
 | **Email** | Nodemailer (SMTP) |
 
 ---
@@ -176,7 +176,7 @@ The scoring core has a test suite using Node's native test runner:
 npm run test
 ```
 
-`npm test` covers all scoring components, the 100-point cap, and qualification threshold. `npm run test:scrapers` checks all 16 active venue adapters, excludes closed venues, validates both Do512 hosts and The Cut's calendar, and exercises lineup splitting, 30-day filtering, event-detail enrichment, retries, timeouts, and Apify-free venue imports.
+`npm test` covers all scoring components, the 100-point cap, and qualification threshold. `npm run test:scrapers` checks all 23 active venue adapters, excludes closed venues, validates Do512, The Cut, and Far Out, and exercises lineup splitting, 30-day filtering, event-detail enrichment, retries, timeouts, and Apify-free venue imports.
 
 ---
 
@@ -187,7 +187,7 @@ npm run test
 | `/` | Dashboard |
 | `/leads` | Lead pipeline |
 | `/leads/[id]` | Lead detail view with scoring, drafts, and activity |
-| `/leads/discover` | Search Instagram via Apify or search the next 30 days of 16 active Austin venue calendars. Venue searches run in parallel, read event pages for lineups, return individual artist/event rows, and import without Apify discovery or Instagram profile scraping. Empire Control Room & Garage is excluded because it has closed. |
+| `/leads/discover` | Search Instagram via Apify or search the next 30 days of 23 active Austin venue sources. Do512 venues run in parallel and read event pages for lineups; Far Out uses its official event feed. Imports bypass Apify discovery and Instagram profile scraping. Empire Control Room & Garage remains excluded because it has closed. |
 | `/projects` | Client project workspace |
 | `/portal/[token]` | Client-facing portal (no auth required) |
 | `/operations` | Operations queue — ranked New Outreach and Follow-ups tabs with explainable priority |

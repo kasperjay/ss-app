@@ -1,4 +1,4 @@
-export type VenueSource = "do512" | "the-cut" | "closed";
+export type VenueSource = "do512" | "the-cut" | "far-out" | "closed";
 
 export const VENUES = [
   {
@@ -102,6 +102,48 @@ export const VENUES = [
     name: "Valhalla Tavern",
     source: "do512",
     calendarUrl: "https://do512.com/venues/valhalla/month_events",
+  },
+  {
+    id: "cheer-up-charlies",
+    name: "Cheer Up Charlies",
+    source: "do512",
+    calendarUrl: "https://do512.com/venues/cheer-up-charlies/month_events",
+  },
+  {
+    id: "swan-dive",
+    name: "Swan Dive",
+    source: "do512",
+    calendarUrl: "https://do512.com/venues/swan-dive/month_events",
+  },
+  {
+    id: "chess-club",
+    name: "Chess Club",
+    source: "do512",
+    calendarUrl: "https://do512.com/venues/chess-club/month_events",
+  },
+  {
+    id: "hole-in-the-wall",
+    name: "Hole in the Wall",
+    source: "do512",
+    calendarUrl: "https://do512.com/venues/hole-in-the-wall/month_events",
+  },
+  {
+    id: "far-out-lounge",
+    name: "The Far Out Lounge",
+    source: "far-out",
+    calendarUrl: "https://www.thefaroutaustin.com/events.html",
+  },
+  {
+    id: "carousel-lounge",
+    name: "Carousel Lounge",
+    source: "do512",
+    calendarUrl: "https://do512.com/venues/carousel-lounge/month_events",
+  },
+  {
+    id: "kick-butt-coffee",
+    name: "Kick Butt Coffee Music & Booze",
+    source: "do512",
+    calendarUrl: "https://do512.com/venues/kick-butt-coffee/month_events",
   },
 ] as const;
 

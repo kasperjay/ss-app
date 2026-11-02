@@ -1,16 +1,27 @@
+import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import {
+  advanceDueEnrollments,
+  enrollLeadInSequence,
+  updateEnrollmentLifecycle,
+} from "@/lib/sequence-close-service";
 
-const EnrollBodySchema = z.object({
+const EnrollLeadSchema = z.object({
   leadId: z.string().min(1),
+  afterOutboundSend: z.boolean().optional(),
+});
+
+const LifecyclePatchSchema = z.object({
+  enrollmentId: z.string().min(1),
+  action: z.enum(["PAUSE", "RESUME", "CANCEL", "ADVANCE_NOW"]),
 });
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id: sequenceId } = await params;
+  const { id } = await params;
 
   let body: unknown;
   try {
@@ -19,7 +30,7 @@ export async function POST(
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const parsed = EnrollBodySchema.safeParse(body);
+  const parsed = EnrollLeadSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Validation failed", issues: parsed.error.issues },
@@ -27,54 +38,70 @@ export async function POST(
     );
   }
 
-  const { leadId } = parsed.data;
+  const { leadId, afterOutboundSend } = parsed.data;
 
-  // Verify sequence and lead both exist
-  const [sequence, lead] = await Promise.all([
-    prisma.followUpSequence.findUnique({ where: { id: sequenceId } }),
-    prisma.lead.findUnique({
-      where: { id: leadId },
-      include: { artist: { select: { name: true } } },
-    }),
-  ]);
-
-  if (!sequence) {
-    return NextResponse.json({ error: "Sequence not found" }, { status: 404 });
-  }
-  if (!lead) {
-    return NextResponse.json({ error: "Lead not found" }, { status: 404 });
-  }
-
-  const [enrollment] = await prisma.$transaction(async (tx) => {
-    const enr = await tx.leadSequenceEnrollment.upsert({
-      where: { leadId_sequenceId: { leadId, sequenceId } },
-      create: {
-        leadId,
-        sequenceId,
-        currentStep: 0,
-        status: "ACTIVE",
-        startedAt: new Date(),
-      },
-      update: {
-        status: "ACTIVE",
-        currentStep: 0,
-        startedAt: new Date(),
-        completedAt: null,
-        pausedAt: null,
-      },
+  try {
+    const enrollment = await enrollLeadInSequence({
+      leadId,
+      sequenceId: id,
+      afterOutboundSend,
     });
 
-    await tx.activity.create({
-      data: {
-        leadId,
-        type: "NOTE",
-        note: `Enrolled in follow-up sequence "${sequence.name}" (${(sequence.steps as Array<{ dayOffset: number }>).length} steps).`,
-        occurredAt: new Date(),
-      },
-    });
+    revalidatePath("/sequences");
+    revalidatePath("/operations");
+    revalidatePath("/replies");
+    revalidatePath(`/leads/${leadId}`);
 
-    return [enr];
-  });
+    return NextResponse.json({ ok: true, enrollment });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to enroll lead in sequence";
+    const status = /not found/i.test(message) ? 404 : 400;
+    return NextResponse.json({ error: message }, { status });
+  }
+}
 
-  return NextResponse.json({ ok: true, enrollment }, { status: 201 });
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  await params;
+
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const parsed = LifecyclePatchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", issues: parsed.error.issues },
+      { status: 422 }
+    );
+  }
+
+  const { enrollmentId, action } = parsed.data;
+
+  try {
+    const result =
+      action === "ADVANCE_NOW"
+        ? await advanceDueEnrollments({ enrollmentId, forceNow: true })
+        : await updateEnrollmentLifecycle({ enrollmentId, action });
+
+    revalidatePath("/sequences");
+    revalidatePath("/operations");
+    revalidatePath("/leads");
+    if (result && "leadId" in result && typeof result.leadId === "string") {
+      revalidatePath(`/leads/${result.leadId}`);
+    }
+
+    return NextResponse.json({ ok: true, result });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to update enrollment";
+    const status = /not found/i.test(message) ? 404 : 400;
+    return NextResponse.json({ error: message }, { status });
+  }
 }

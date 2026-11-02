@@ -16,6 +16,8 @@
     "enrich:stale": "node scripts/enrich-stale.js",
     "enrich:analysis": "node scripts/enrich-analysis.js",
     "followup:remind": "node scripts/followup-remind.js",
+    "sequences:seed": "node scripts/seed-sequences.js",
+    "sequences:advance": "node scripts/advance-sequences.js",
     "discover:contacts": "node scripts/discover-contacts.js",
     "report:campaign": "node scripts/report-campaign.js",
     "detect:duplicates": "node scripts/detect-duplicates.js",

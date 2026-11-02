@@ -28,7 +28,7 @@ const NON_ARTIST_EVENT_PATTERNS = [
 
 const KNOWN_PROMOTER_OR_VENUE_NAMES = [
   /^(?:howdy gals|resound|do512|margin walker|kutx|austin chronicle|c3 presents|live nation|heard presents|transmission)\b/i,
-  /^(?:hotel vegas|volstead|mohawk|antone'?s|continental club|continental gallery|the cut|saxon pub|c-?boys|broken spoke|elephant room|3ten|scoot inn|valhalla|haute spot|parker jazz|come and take it)\b/i,
+  /^(?:hotel vegas|volstead|mohawk|antone'?s|continental club|continental gallery|the cut|saxon pub|c-?boys|broken spoke|elephant room|3ten|scoot inn|valhalla|haute spot|parker jazz|come and take it|cheer up charlies|swan dive|chess club|hole in the wall|far out lounge|carousel lounge|kick butt coffee)\b/i,
 ];
 
 const NON_MUSIC_HANDLE_PATTERNS = [

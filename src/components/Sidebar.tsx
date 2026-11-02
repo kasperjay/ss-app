@@ -31,6 +31,7 @@ export function Sidebar({ className = "" }: { className?: string }) {
       { href: '/leads/discover', label: 'Artist Search', description: 'Venue and Instagram discovery' },
       { href: '/leads', label: 'Leads', description: 'Central view of all leads and contacts' },
       { href: '/replies', label: 'Replies', description: 'Triage incoming artist replies' },
+      { href: '/sequences', label: 'Sequences', description: 'Follow-up cadences and due drafts' },
       { href: '/projects', label: 'Projects', description: 'Manage active client work' },
       { href: '/calendar', label: 'Calendar', description: 'Upcoming sessions and bookings' },
       { href: '/operations', label: 'Operations', description: 'Follow-up queue and action items' },
@@ -84,6 +85,11 @@ export function Sidebar({ className = "" }: { className?: string }) {
         <Link href="/replies">
           <NavIcon active={pathname?.startsWith('/replies') || false}>
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </NavIcon>
+        </Link>
+        <Link href="/sequences">
+          <NavIcon active={pathname?.startsWith('/sequences') || false}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
           </NavIcon>
         </Link>
 

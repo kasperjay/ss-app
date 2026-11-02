@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { pauseActiveEnrollmentsForLead } from "@/lib/sequence-close-service";
 import { triggerIgReplyNotification } from "@/lib/novu";
 import { fetchInstagramProfile } from "@/lib/instagram";
 
@@ -136,11 +137,20 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Update lead status to FOLLOW_UP if they're still in CONTACTED state
-      if (lead.status === "CONTACTED") {
+      await pauseActiveEnrollmentsForLead({
+        leadId: lead.id,
+        reason: "artist replied on Instagram",
+      });
+
+      // Update lead status to FOLLOW_UP if they're in pre-reply outreach state
+      if (["NEW", "QUALIFIED", "CONTACTED"].includes(lead.status)) {
         await prisma.lead.update({
           where: { id: lead.id },
-          data: { status: "FOLLOW_UP" },
+          data: {
+            status: "FOLLOW_UP",
+            followUpActionType: "DM",
+            nextActionAt: lead.nextActionAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000),
+          },
         });
       }
 

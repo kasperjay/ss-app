@@ -1,5 +1,7 @@
+import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ensureDefaultSequences } from "@/lib/sequence-close-service";
 import { z } from "zod";
 
 const CreateSequenceSchema = z.object({
@@ -18,10 +20,32 @@ const CreateSequenceSchema = z.object({
 });
 
 export async function GET() {
+  await ensureDefaultSequences();
+
   const sequences = await prisma.followUpSequence.findMany({
     orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
     include: {
       _count: { select: { enrollments: true } },
+      enrollments: {
+        orderBy: { updatedAt: "desc" },
+        take: 50,
+        include: {
+          lead: {
+            select: {
+              id: true,
+              status: true,
+              nextActionAt: true,
+              artist: {
+                select: {
+                  name: true,
+                  instagramHandle: true,
+                  followerCount: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
 
@@ -52,6 +76,8 @@ export async function POST(req: NextRequest) {
       steps: parsed.data.steps,
     },
   });
+
+  revalidatePath("/sequences");
 
   return NextResponse.json({ sequence }, { status: 201 });
 }

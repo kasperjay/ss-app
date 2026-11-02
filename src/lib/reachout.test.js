@@ -231,21 +231,22 @@ test("Reachout: Channel formatting rules for IG vs Email in system prompt", () =
 
   const systemText = payload.input[0].content[0].text;
   assert.ok(systemText.includes("INSTAGRAM DMS (IG_A, IG_B)"));
-  assert.ok(systemText.includes("Exactly 1 to 2 sentences"));
+  assert.ok(systemText.includes("2 to 4 sentences"));
   assert.ok(systemText.includes("EMAILS (EMAIL_A, EMAIL_B)"));
   assert.ok(systemText.includes("Line 1: Must begin with 'Subject: [Short, natural subject line]'"));
   assert.ok(systemText.includes("Kasper Pickett"));
-  assert.ok(systemText.includes("Spectral Soundworks"));
+  assert.ok(!systemText.includes("producer at Spectral Soundworks"));
+  assert.ok(systemText.includes("Do NOT mention 'Spectral Soundworks'"));
 });
 
-test("Reachout: cleanEmail handles Subject, sanitizes banned phrases, and appends Kasper Pickett & Spectral Soundworks", () => {
+test("Reachout: cleanEmail handles Subject, sanitizes banned phrases, and appends Kasper Pickett without Spectral Soundworks", () => {
   const { cleanEmail } = require("./reachout-core");
   const rawEmail = `Subject: Question on guitar tones\n\nHey Alex,\n\nLoved your recent track. I run a tracking room in East Austin.\n\nLet me know if you want to connect!`;
   const cleaned = cleanEmail(rawEmail);
 
   assert.ok(cleaned.startsWith("Subject: Question on guitar tones"));
   assert.ok(cleaned.includes("Kasper Pickett"));
-  assert.ok(cleaned.includes("Spectral Soundworks"));
+  assert.ok(!cleaned.includes("Spectral Soundworks"));
   assert.ok(!cleaned.toLowerCase().includes("tracking room"));
   assert.ok(!cleaned.toLowerCase().includes("east austin"));
 });

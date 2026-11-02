@@ -49,11 +49,11 @@ const KNOWN_PROMOTER_PREFIXES = [
 ];
 
 const KNOWN_VENUE_PREFIXES = [
-  /^(?:hotel\s*vegas|volstead(?: lounge)?|mohawk(?: austin)?|continental(?: gallery| club)?|antone'?s|come\s*and\s*take\s*it(?: live)?|the\s*cut|saxon\s*pub|c-?boys(?: heart & soul)?|broken\s*spoke|elephant\s*room|3ten(?: acl live)?|scoot\s*inn|valhalla|haute\s*spot|parker\s*jazz(?: club)?|empire(?: control room)?)\s*:\s*/i,
+  /^(?:hotel\s*vegas|volstead(?: lounge)?|mohawk(?: austin)?|continental(?: gallery| club)?|antone'?s|come\s*and\s*take\s*it(?: live)?|the\s*cut|saxon\s*pub|c-?boys(?: heart & soul)?|broken\s*spoke|elephant\s*room|3ten(?: acl live)?|scoot\s*inn|valhalla|haute\s*spot|parker\s*jazz(?: club)?|empire(?: control room)?|cheer\s*up\s*charlies|swan\s*dive|chess\s*club|hole\s*in\s*the\s*wall|far\s*out\s*lounge|carousel\s*lounge|kick\s*butt\s*coffee|electric\s*church)\s*:\s*/i,
 ];
 
 const KNOWN_VENUE_SUFFIXES = [
-  /\s+(?:at|on|live at)\s+(?:the\s+)?(?:hotel\s*vegas|volstead(?: lounge)?|mohawk(?: austin)?|continental(?: gallery| club)?|antone'?s|come\s*and\s*take\s*it(?: live)?|the\s*cut|saxon\s*pub|c-?boys|broken\s*spoke|elephant\s*room|3ten|scoot\s*inn|valhalla|haute\s*spot|parker\s*jazz|empire)(?:\s+(?:patio|stage|inside|outside))?\s*$/i,
+  /\s+(?:at|on|live at)\s+(?:the\s+)?(?:hotel\s*vegas|volstead(?: lounge)?|mohawk(?: austin)?|continental(?: gallery| club)?|antone'?s|come\s*and\s*take\s*it(?: live)?|the\s*cut|saxon\s*pub|c-?boys|broken\s*spoke|elephant\s*room|3ten|scoot\s*inn|valhalla|haute\s*spot|parker\s*jazz|empire|cheer\s*up\s*charlies|swan\s*dive|chess\s*club|hole\s*in\s*the\s*wall|far\s*out\s*lounge|carousel\s*lounge|kick\s*butt\s*coffee|electric\s*church)(?:\s+(?:patio|stage|inside|outside))?\s*$/i,
 ];
 
 export const cleanArtistName = (name: string): string => {

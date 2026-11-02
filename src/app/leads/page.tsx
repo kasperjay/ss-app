@@ -10,6 +10,11 @@ import { formatRelativeDate, formatLocation, clampScore } from "@/lib/utils";
 import { updateLeadStatus } from "./[id]/actions";
 import { AUSTIN_AREA_CITIES } from "@/lib/location-parser";
 import { isNonLocalWithPastGigOnly } from "@/lib/show-parser";
+import {
+  comparePortfolioLeads,
+  isLowFollowerArtist,
+  normalizeFollowerCount,
+} from "@/lib/portfolio-priority";
 
 const STATUS_OPTIONS = [
   "ALL",
@@ -74,49 +79,9 @@ type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-type PortfolioLead = {
-  score: number | null;
-  status: string;
-  artist: {
-    emails?: string[];
-    instagramHandle?: string | null;
-    officialSiteUrl?: string | null;
-    location?: string | null;
-    city?: string | null;
-    state?: string | null;
-    lastPostAt?: Date | string | null;
-    releases?: Array<{ releaseDate?: Date | string | null; createdAt: Date | string }>;
-  };
-};
-
 function asSingle(value: string | string[] | undefined, fallback: string): string {
   if (Array.isArray(value)) return value[0] ?? fallback;
   return value ?? fallback;
-}
-
-function portfolioPriority(lead: PortfolioLead): number {
-  const artist = lead.artist;
-  const hasContact = Boolean(
-    artist.emails?.length || artist.instagramHandle || artist.officialSiteUrl
-  );
-  const latestRelease = artist.releases?.[0];
-  const releaseDate = latestRelease?.releaseDate ?? latestRelease?.createdAt;
-  const releaseAgeDays = releaseDate
-    ? Math.max(0, (Date.now() - new Date(releaseDate).getTime()) / 86400000)
-    : Infinity;
-  const isActiveArtist = Boolean(artist.lastPostAt && (Date.now() - new Date(artist.lastPostAt).getTime()) / 86400000 <= 90);
-  const locationText = [artist.location, artist.city, artist.state].filter(Boolean).join(" ");
-  const isLocal = /austin|atx|round rock|cedar park|pflugerville|georgetown|buda|kyle/i.test(locationText);
-  const statusPoints = lead.status === "NEW" ? 10 : lead.status === "QUALIFIED" ? 8 : lead.status === "FOLLOW_UP" ? 5 : 0;
-
-  return (
-    (hasContact ? 30 : 0) +
-    (releaseAgeDays <= 180 ? 20 : releaseAgeDays <= 365 ? 10 : 0) +
-    (isActiveArtist ? 15 : 0) +
-    (isLocal ? 10 : 0) +
-    statusPoints +
-    Math.min(25, Math.max(0, Number(lead.score) || 0) * 0.25)
-  );
 }
 
 export default async function LeadsPage(props: PageProps) {
@@ -349,7 +314,7 @@ export default async function LeadsPage(props: PageProps) {
   // Non-local artists whose gigs in Austin have already been played are removed from the lead queue
   const leads = rawLeads.filter((lead) => safeStatus === "PAUSED" || !isNonLocalWithPastGigOnly(lead));
   if (safeSort === "portfolio_desc") {
-    leads.sort((a, b) => portfolioPriority(b) - portfolioPriority(a) || (Number(b.score) || 0) - (Number(a.score) || 0));
+    leads.sort((a, b) => comparePortfolioLeads(a, b));
   }
 
   // Calculate active filter count and chips for UI feedback
@@ -391,7 +356,7 @@ export default async function LeadsPage(props: PageProps) {
   if (safeContact !== "ALL") {
     activeChips.push(safeContact === "WITH_CONTACT" ? "Has Contacts" : "Missing Contacts");
   }
-  if (isPortfolioView) activeChips.unshift("Portfolio Outreach: Any Genre");
+  if (isPortfolioView) activeChips.unshift("Portfolio Building: <5k Followers First");
 
   return (
     <div className="relative min-h-screen bg-transparent">
@@ -419,7 +384,7 @@ export default async function LeadsPage(props: PageProps) {
                 Lead <span className="premium-gradient-text italic">Management</span>
               </h1>
               <p className="text-white/40 text-sm max-w-2xl font-medium leading-relaxed">
-                Portfolio outreach view for artists of any genre, with the existing Smart Score preserved as a long-term intelligence signal.
+                Portfolio building view for artists of any genre, prioritizing emerging artists under 5k followers while preserving Smart Score as a long-term intelligence signal.
               </p>
             </div>
 
@@ -427,13 +392,13 @@ export default async function LeadsPage(props: PageProps) {
               <div className="flex flex-col items-end gap-2 bg-white/2 backdrop-blur-sm border border-white/5 p-6 rounded-[32px]">
                 <span className="text-xs font-bold text-white/30 uppercase tracking-[0.2em]">Current Mode</span>
                 <span className="text-sm font-bold uppercase tracking-[0.15em] text-accent">
-                  {isPortfolioView ? "Portfolio Outreach" : "Smart Score"}
+                  {isPortfolioView ? "Portfolio Building" : "Smart Score"}
                 </span>
               </div>
               <div className="flex flex-col items-end gap-2 bg-white/2 backdrop-blur-sm border border-white/5 p-6 rounded-[32px]">
                 <span className="text-xs font-bold text-white/30 uppercase tracking-[0.2em]">Lead Records</span>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-sans font-extrabold text-accent">{leads.length}</span>
+                  <span className="text-4xl font-sans font-extrabold text-accent tabular-nums">{leads.length}</span>
                   <span className="text-xs font-bold text-white/10 uppercase tracking-widest">
                     {activeChips.length > 0 ? "Filtered" : "Active"}
                   </span>
@@ -452,15 +417,27 @@ export default async function LeadsPage(props: PageProps) {
         {/* Multi-Dimensional Filter Suite */}
         <section className="relative z-10">
           <GlassCard className="p-6! border-white/5 bg-white/2 space-y-6">
-            <form method="GET" action="/leads" className="space-y-4">
+            <form
+              key={`${safeView}:${safeStatus}:${safeScore}:${safeLocation}:${safeNeed}:${safeContact}:${safeSort}:${q}:${loc}:${minScoreRaw}:${maxScoreRaw}`}
+              method="GET"
+              action="/leads"
+              className="space-y-4"
+            >
               <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-accent/20 bg-accent/5 px-4 py-3">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">
-                    {isPortfolioView ? "Portfolio outreach" : "Smart score intelligence"}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">
+                      {isPortfolioView ? "Portfolio building" : "Smart score intelligence"}
+                    </p>
+                    {isPortfolioView && (
+                      <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/25">
+                        ★ &lt;5k followers first
+                      </span>
+                    )}
+                  </div>
                   <p className="mt-1 text-xs text-white/45">
                     {isPortfolioView
-                      ? "Prioritizes reachable, active artists across every genre. Smart Score remains visible and unchanged."
+                      ? "Prioritizes artists under 5,000 followers alongside reachability and recent activity across every genre. Smart Score remains visible and unchanged."
                       : "Uses the existing scoring model and rationale for long-term lead intelligence."
                     }
                   </p>
@@ -472,7 +449,7 @@ export default async function LeadsPage(props: PageProps) {
                     defaultValue={safeView}
                     className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-accent/30"
                   >
-                    <option value="portfolio">Portfolio Outreach · Any Genre</option>
+                    <option value="portfolio">Portfolio Building · &lt;5k Followers First</option>
                     <option value="score">Smart Score Intelligence</option>
                   </select>
                 </label>
@@ -596,7 +573,7 @@ export default async function LeadsPage(props: PageProps) {
                     defaultValue={safeSort}
                     className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent/30"
                   >
-                    <option value="portfolio_desc">Portfolio Priority (Reachability → Fit)</option>
+                    <option value="portfolio_desc">Portfolio Priority (&lt;5k Followers → Reachability → Fit)</option>
                     <option value="score_desc">Smart Score (High → Low)</option>
                     <option value="score_asc">Smart Score (Low → High)</option>
                     <option value="updated_desc">Last Updated (Newest)</option>
@@ -675,6 +652,8 @@ export default async function LeadsPage(props: PageProps) {
             <div className="grid gap-6">
               {leads.map((lead) => {
                 const score = clampScore(lead.score);
+                const followerCount = normalizeFollowerCount(lead.artist.followerCount);
+                const isPriorityFollower = isPortfolioView && isLowFollowerArtist(lead.artist);
                 const hasEmail = (lead.artist.emails?.length ?? 0) > 0;
                 const hasIg = Boolean(lead.artist.instagramHandle);
                 const hasSite = Boolean(lead.artist.officialSiteUrl);
@@ -694,7 +673,9 @@ export default async function LeadsPage(props: PageProps) {
                 return (
                   <GlassCard
                     key={lead.id}
-                    className="group p-8! transition-all hover:bg-white/4 border-white/5 hover:border-accent/30 shadow-2xl"
+                    className={`group p-8! transition-all hover:bg-white/4 hover:border-accent/30 shadow-2xl ${
+                      isPriorityFollower ? "border-accent/20" : "border-white/5"
+                    }`}
                   >
                     {/* Header Row */}
                     <div className="flex flex-wrap items-start justify-between gap-6 mb-6 border-b border-white/5 pb-6">
@@ -713,10 +694,19 @@ export default async function LeadsPage(props: PageProps) {
                           </span>
                           <span className="h-1 w-1 rounded-full bg-white/10" />
                           <span className="text-white/30">{lead.artist.genre || "Genre Unknown"}</span>
+                          <span className="h-1 w-1 rounded-full bg-white/10" />
+                          <span className={`tabular-nums ${isPriorityFollower ? "text-accent" : "text-white/30"}`}>
+                            {followerCount !== null ? `${followerCount.toLocaleString()} followers` : "Followers unknown"}
+                          </span>
                         </div>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-3">
+                        {isPriorityFollower && (
+                          <span className="px-3 py-1.5 rounded-xl bg-accent/10 border border-accent/30 text-accent text-[10px] font-bold uppercase tracking-[0.2em]">
+                            ★ &lt;5k Priority
+                          </span>
+                        )}
                         {(lead.productionNeedLevel === "PROBABLE" || lead.productionNeedLevel === "CLEAR") && (
                           <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold uppercase tracking-[0.2em]">
                             ★ Probable Need
