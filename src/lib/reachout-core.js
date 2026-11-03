@@ -1,6 +1,8 @@
 // src/lib/reachout-core.js
 // Shared reachout prompt generation and validation core for Spectral Soundworks.
 
+const { TRACK_TITLE_RULE, verifiedTrackTitle } = require("./spotify-outreach");
+
 const { parseShowActivity } = require("./show-parser");
 
 const REACHOUT_CONFIG = {
@@ -249,7 +251,7 @@ const buildPayload = (ctx) => {
       "- Put the direct offer in the first or second sentence whenever the channel length allows. Do not imply a limited number of spots or use scarcity language.\n\n"
     : "";
 
-  const systemText =
+  const systemText = TRACK_TITLE_RULE +
     "You write outreach for Kasper Pickett, an independent audio engineer based in Austin, Texas.\nCRITICAL REQUIREMENT: Do NOT mention 'Spectral Soundworks' anywhere in outreach. Introduce Kasper simply as an independent Austin audio engineer.\n" +
     "Your objective: Initiate a genuine connection between fellow music creators. Sound like a real Austin engineer—conversational, understated, peer-to-peer, confident, and chill. Zero marketing fluff or sales desperation.\n\n" +
     "TEMPORAL ACCURACY RULES (CRITICAL & MANDATORY):\n" +
@@ -320,11 +322,11 @@ const buildPayload = (ctx) => {
   let releaseLine = "None";
   if (ctx.releaseTitle) {
     if (ctx.releaseTiming) {
-      releaseLine = `${ctx.releaseTitle} (${ctx.releaseTiming})`;
+      releaseLine = `Spotify-verified music: ${ctx.releaseTitle} (${ctx.releaseTiming})`;
     } else if (ctx.isRecentRelease) {
-      releaseLine = `${ctx.releaseTitle} (Recently released${ctx.releaseDatePretty ? ` on ${ctx.releaseDatePretty}` : ""})`;
+      releaseLine = `Spotify-verified music: ${ctx.releaseTitle} (Recently released${ctx.releaseDatePretty ? ` on ${ctx.releaseDatePretty}` : ""})`;
     } else {
-      releaseLine = `${ctx.releaseTitle} (Past release)`;
+      releaseLine = `Spotify-verified music: ${ctx.releaseTitle} (Past release)`;
     }
   }
 
@@ -524,6 +526,7 @@ const callOpenAI = async (payload) => {
 };
 
 const generateReachoutDrafts = async (ctx) => {
+  ctx = { ...ctx, releaseTitle: await verifiedTrackTitle(ctx.spotifyArtistId, ctx.releaseTitle) };
   const fields = ctx.hasEmail
     ? ["IG_A", "IG_B", "EMAIL_A", "EMAIL_B"]
     : ["IG_A", "IG_B"];

@@ -17,6 +17,7 @@ export { detectGenreStyle, isAustinLocal, buildPayload, sanitizeDraftText };
 
 export type ReachoutContext = {
   artist: string;
+  spotifyArtistId?: string | null;
   genreText?: string | null;
   location?: string | null;
   releaseTitle?: string | null;

@@ -1,5 +1,6 @@
 "use server";
 
+import { TRACK_TITLE_RULE, verifiedTrackTitle } from "@/lib/spotify-outreach";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -742,6 +743,7 @@ async function isLeadInPortfolioCampaign(leadId: string): Promise<boolean> {
 }
 
 async function generateReachoutWithAI(ctx: {
+  spotifyArtistId?: string | null;
   artistName: string;
   genreText?: string | null;
   location?: string | null;
@@ -760,6 +762,7 @@ async function generateReachoutWithAI(ctx: {
   isPortfolioCampaign: boolean;
   styleHint?: string;
 }): Promise<{ IG_A: string; IG_B: string; EMAIL_A?: string; EMAIL_B?: string }> {
+  ctx = { ...ctx, releaseTitle: await verifiedTrackTitle(ctx.spotifyArtistId, ctx.releaseTitle) };
   const now = new Date();
   const currentDateStr = new Intl.DateTimeFormat("en-US", {
     weekday: "long",
@@ -795,7 +798,7 @@ async function generateReachoutWithAI(ctx: {
     : "";
 
   const releaseSection = ctx.releaseTitle
-    ? `Latest Music: "${ctx.releaseTitle}" (${ctx.releaseType || "release"}) — ${ctx.releaseTiming || "Catalog release"}`
+    ? `Spotify-verified music: "${ctx.releaseTitle}" (${ctx.releaseType || "release"}) — ${ctx.releaseTiming || "Catalog release"}`
     : "No catalog release title specified; speak to their sound and music in general.";
 
   const portfolioOfferBlock = ctx.isPortfolioCampaign
@@ -813,7 +816,7 @@ This lead is NOT part of a portfolio building campaign. Do NOT offer free sessio
 Introduce Kasper as an Austin audio engineer, compliment their sound, and casually leave the door open to collaborate, track, or mix when they're working on new material.
 DO NOT mention 'Spectral Soundworks'.`;
 
-  const systemText =
+  const systemText = TRACK_TITLE_RULE +
     "You write outreach for Kasper Pickett, an independent audio engineer based in Austin, Texas.\n" +
     "CRITICAL REQUIREMENT: Do NOT mention 'Spectral Soundworks' anywhere in the message, subject, or signoff. Introduce Kasper simply as an independent Austin audio engineer.\n" +
     "Your objective: Initiate a genuine, substantive connection between fellow music creators. Sound like a seasoned, thoughtful Austin audio engineer—conversational, warm, peer-to-peer, confident, and grounded. Zero marketing fluff, corporate jargon, or sales desperation.\n\n" +
@@ -1131,6 +1134,7 @@ export async function generateDraftsForLead(
     : inPortfolioCampaign;
 
   const output = await generateReachoutWithAI({
+    spotifyArtistId: lead.artist.spotifyArtistId,
     artistName: lead.artist.name,
     genreText: lead.artist.genre,
     location: formatLocation(
@@ -1311,6 +1315,7 @@ export async function regenerateDraft(formData: FormData) {
       : [];
 
   const output = await generateReachoutWithAI({
+    spotifyArtistId: lead.artist.spotifyArtistId,
     artistName: lead.artist.name,
     genreText: lead.artist.genre,
     location: formatLocation(

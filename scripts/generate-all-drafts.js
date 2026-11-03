@@ -211,6 +211,7 @@ async function main() {
             lead.artist.state,
             lead.artist.country
           ),
+          spotifyArtistId: lead.artist?.spotifyArtistId,
           releaseTitle: latestRelease?.title ?? null,
           releaseDatePretty: formatPrettyDate(releaseDate),
           releaseTiming,
