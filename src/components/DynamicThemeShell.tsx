@@ -207,13 +207,42 @@ interface Props {
     children: React.ReactNode;
 }
 
-const DEFAULT_ACCENT = "#00f2ff";
+const THEME_VARIABLES = [
+    "--background",
+    "--foreground",
+    "--surface",
+    "--surface-strong",
+    "--surface-glass",
+    "--surface-glass-strong",
+    "--accent",
+    "--accent-strong",
+    "--highlight",
+    "--muted",
+    "--border-subtle",
+    "--border-accent",
+    "--accent-secondary",
+    "--accent-warm",
+] as const;
 
 // Apply a set of CSS variables to a target element (defaults to document.documentElement)
 function applyVars(vars: Record<string, string>, target?: HTMLElement | null) {
     const el = target || document.documentElement;
     for (const [key, val] of Object.entries(vars)) {
         el.style.setProperty(key, val);
+    }
+}
+
+function captureVars(target: HTMLElement) {
+    return Object.fromEntries(
+        THEME_VARIABLES.map((key) => [key, target.style.getPropertyValue(key)])
+    );
+}
+
+function restoreVars(target: HTMLElement, vars: Record<string, string>) {
+    for (const key of THEME_VARIABLES) {
+        const value = vars[key];
+        if (value) target.style.setProperty(key, value);
+        else target.style.removeProperty(key);
     }
 }
 
@@ -314,12 +343,25 @@ export function DynamicThemeShell({ imageUrl, artistName, genre, accentColors, c
     }, [accentColors]);
 
     useEffect(() => {
+        const root = document.documentElement;
+        const shell = shellRef.current;
+        const rootVarsBeforeTheme = captureVars(root);
+        const shellVarsBeforeTheme = shell ? captureVars(shell) : {};
+        let cancelled = false;
+
         applyFont();
         applyStoredAccents();
-        if (!imageUrl) return;
+        if (!imageUrl) {
+            return () => {
+                restoreVars(root, rootVarsBeforeTheme);
+                if (shell) restoreVars(shell, shellVarsBeforeTheme);
+            };
+        }
+
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.onload = () => {
+            if (cancelled) return;
             try {
                 const palette = extractPalette(img);
                 if (palette.length > 0) {
@@ -339,9 +381,16 @@ export function DynamicThemeShell({ imageUrl, artistName, genre, accentColors, c
             }
         };
         img.onerror = () => {
+            if (cancelled) return;
             console.log("[Shell] Image failed to load, using stored accents");
         };
         img.src = imageUrl;
+
+        return () => {
+            cancelled = true;
+            restoreVars(root, rootVarsBeforeTheme);
+            if (shell) restoreVars(shell, shellVarsBeforeTheme);
+        };
     }, [imageUrl, applyFont, applyStoredAccents]);
 
     return (
