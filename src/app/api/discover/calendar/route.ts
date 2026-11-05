@@ -45,8 +45,14 @@ export async function POST(request: Request) {
     const venueResults = await Promise.all(venueIds.map(async (venueId) => {
       const venue = getVenue(venueId);
       const startedAt = Date.now();
+      let timer: ReturnType<typeof setTimeout> | undefined;
       try {
-        const result = await getVenueScraper(venueId)(windowStart);
+        const result = await Promise.race([
+          getVenueScraper(venueId)(windowStart),
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(() => reject(new Error("Venue search timed out after 35 seconds.")), 35_000);
+          }),
+        ]);
         return {
           venueId,
           venueName: venue.name,
@@ -75,6 +81,8 @@ export async function POST(request: Request) {
           warnings: [],
           items: [],
         };
+      } finally {
+        clearTimeout(timer);
       }
     }));
 
