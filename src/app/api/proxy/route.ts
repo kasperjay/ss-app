@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { fetchInstagramEmbed, extractShortcode } from "@/lib/instagram-embed";
+import { readPostImage, savePostImage, allowedImageUrl } from "@/lib/post-image-cache";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
@@ -11,6 +12,12 @@ export async function GET(request: NextRequest) {
 
   if (!url && !shortcode && !postId) {
     return new NextResponse("Missing URL or shortcode", { status: 400 });
+  }
+
+  const cacheKey = postId ? `post:${postId}` : shortcode ? `shortcode:${shortcode}` : null;
+  if (cacheKey) {
+    const cached = await readPostImage(cacheKey);
+    if (cached) return new NextResponse(new Uint8Array(cached), { headers: { "Content-Type": "image/webp", "Cache-Control": "private, max-age=86400" } });
   }
 
   // If postId provided but shortcode missing, attempt to resolve from DB
@@ -52,22 +59,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Only allow proxying images from trusted CDNs to prevent SSRF
-  const allowedDomains = [
-    "fbcdn.net",
-    "instagram.com",
-    "fbsbx.com",
-    "cdninstagram.com",
-    "scdn.co",
-    "spotifycdn.com",
-    "spotify.com",
-    "i.scdn.co",
-    "image.lnk.to",
-    "images.unsplash.com",
-    "picsum.photos",
-    "images.weserv.nl",
-    "imgix.net",
-  ];
-  const isAllowed = allowedDomains.some((domain) => url.includes(domain));
+  const isAllowed = allowedImageUrl(url);
 
   if (!isAllowed) {
     console.warn(`[Proxy] Rejected domain: ${url}`);
@@ -78,7 +70,7 @@ export async function GET(request: NextRequest) {
     let response = await fetchIG(url);
 
     // If initial fetch failed with 403 / 410 and we have a shortcode, self-heal via embed
-    if (!response.ok && (response.status === 403 || response.status === 410)) {
+    if (!response.ok) {
       if (!shortcode && postId) {
         try {
           const dbPost = await prisma.instagramPost.findUnique({
@@ -112,6 +104,10 @@ export async function GET(request: NextRequest) {
       const contentType = response.headers.get("Content-Type") || "image/jpeg";
       const arrayBuffer = await response.arrayBuffer();
 
+      if (cacheKey) {
+        const saved = await savePostImage(cacheKey, arrayBuffer);
+        return new NextResponse(new Uint8Array(saved), { headers: { "Content-Type": "image/webp", "Cache-Control": "private, max-age=86400" } });
+      }
       const headers = new Headers();
       headers.set("Content-Type", contentType);
       headers.set("Cache-Control", "public, max-age=604800, stale-while-revalidate=86400");
@@ -145,8 +141,11 @@ export async function GET(request: NextRequest) {
 }
 
 async function fetchIG(url: string) {
+  if (!allowedImageUrl(url)) throw new Error("Forbidden image URL");
   const isInstagram = url.includes("instagram") || url.includes("cdninstagram") || url.includes("fbcdn.net");
   return fetch(url, {
+    redirect: "error",
+    signal: AbortSignal.timeout(15000),
     headers: {
       "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
       "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",

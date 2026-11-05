@@ -1,3 +1,4 @@
+import { capturePostImage } from "@/lib/post-image-cache";
 import { prisma } from "@/lib/prisma";
 import logger from "@/lib/logger";
 import { discoverEmailsFromUrls, extractEmailsFromTextSafe, mergeEmails } from "@/lib/email";
@@ -408,6 +409,9 @@ export class LeadIngestService {
                   postedAt: this.toDate(post.postedAt),
                   url: post.url,
                 },
+              }).then(async saved => {
+                if (saved.imageUrl) await capturePostImage(`post:${saved.id}`, saved.imageUrl).catch(error => logger.warn({ err: error }, "Post image capture failed"));
+                return saved;
               });
             } else {
               return prisma.instagramPost.create({
@@ -418,6 +422,9 @@ export class LeadIngestService {
                   postedAt: this.toDate(post.postedAt),
                   url: post.url,
                 },
+              }).then(async saved => {
+                if (saved.imageUrl) await capturePostImage(`post:${saved.id}`, saved.imageUrl).catch(error => logger.warn({ err: error }, "Post image capture failed"));
+                return saved;
               });
             }
           } catch (e) {

@@ -60,3 +60,5 @@ full_chat_conversation.csv
 # Database dumps & persistent cluster data
 *.sql
 .pgdata/
+
+/data/post-images/
