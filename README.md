@@ -224,3 +224,7 @@ Activity                        (user-facing lead audit trail)
 `/operations` separates reachable first-contact opportunities from existing follow-ups. New Outreach includes only `NEW` and `QUALIFIED` leads that have not been contacted and have an email or Instagram handle. Follow-ups require both `nextActionAt` and a `FollowUpActionType` (`EMAIL`, `DM`, `CALL`, `RESEARCH`, or `OTHER`); incomplete records remain visible as cleanup items.
 
 Priority starts with the existing lead score and adds only approved, evidenced production need: `POSSIBLE` adds 8 points and `CLEAR` adds 25 points. Approved evidence expires after 45 days. Each queue row shows its top reasons and an expandable score breakdown; hard exclusions are eligibility rules rather than negative score points.
+
+### Temporary DNS fallback
+
+Use https://spectral-soundworks-kkkkrash.zocomputer.io with the existing route and portal token while custom-domain DNS is unavailable. Set `NEXT_PUBLIC_APP_URL` to that origin in `.env.local` and rebuild/restart after changing it. Existing navigation and portal file requests use relative paths. Previously shared custom-domain links must be re-shared with the Zo hostname; a redirect cannot repair DNS failures. The separate marketing booking site is not hosted by this CRM.

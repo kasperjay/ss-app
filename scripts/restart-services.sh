@@ -34,7 +34,7 @@ restart_svc "email-reply-poller" || true
 
 echo ""
 echo "=== Health check ==="
-curl -s -o /dev/null -w "App (hq.spectralsound.works): HTTP %{http_code}\n" https://hq.spectralsound.works
+curl -s -o /dev/null -w "App (Zo fallback): HTTP %{http_code}\n" https://spectral-soundworks-kkkkrash.zocomputer.io
 echo ""
 echo "Service status:"
 $CTL status spectral-postgres spectral-soundworks email-reply-poller 2>/dev/null
