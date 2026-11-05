@@ -52,6 +52,31 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+@media (width < 48rem) {
+  :root {
+    --muted: #b8b8c0;
+    --text-xs: 1rem;
+    --text-xs--line-height: 1.5;
+    --text-sm: 1.125rem;
+    --text-sm--line-height: 1.6;
+  }
+
+  :is([class~="text-[9px]"], [class~="text-[10px]"], [class~="text-[11px]"], [class~="text-[12px]"], [class~="text-[14px]"]) {
+    font-size: 1rem;
+    line-height: 1.5;
+    letter-spacing: 0.04em;
+  }
+
+  :is(.text-white\/20, .text-white\/25, .text-white\/30, .text-white\/35, .text-white\/40, .text-white\/50, .text-white\/60) {
+    color: #b8b8c0;
+  }
+
+  body > nav span {
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+  }
+}
+
 select,
 option,
 optgroup {
