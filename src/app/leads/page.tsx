@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
+import { LeadQueue, SkippableLead } from "./LeadQueue";
 import { Prisma, LeadStatus } from "local-prisma-client";
 import { prisma } from "@/lib/prisma";
 import { GlassCard } from "@/components/GlassCard";
@@ -629,6 +630,7 @@ export default async function LeadsPage(props: PageProps) {
         </section>
 
         {/* Lead List */}
+        <LeadQueue view={safeView}>
         <main className="space-y-6 relative z-10">
           {leads.length === 0 ? (
             <GlassCard className="py-20 text-center p-12!">
@@ -671,8 +673,8 @@ export default async function LeadsPage(props: PageProps) {
                   (lead.artist.location && /austin|atx/i.test(lead.artist.location));
 
                 return (
+                  <SkippableLead key={lead.id} id={lead.id} name={lead.artist.name}>
                   <GlassCard
-                    key={lead.id}
                     className={`group p-8! transition-all hover:bg-white/4 hover:border-accent/30 shadow-2xl ${
                       isPriorityFollower ? "border-accent/20" : "border-white/5"
                     }`}
@@ -813,11 +815,13 @@ export default async function LeadsPage(props: PageProps) {
                       </div>
                     </div>
                   </GlassCard>
+                  </SkippableLead>
                 );
               })}
             </div>
           )}
         </main>
+        </LeadQueue>
       </div>
     </div>
   );
