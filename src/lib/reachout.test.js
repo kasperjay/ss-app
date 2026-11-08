@@ -128,7 +128,8 @@ test("Reachout: Recent past show (already happened within 30 days) is framed str
   assert.ok(userText.includes("NEVER refer to it as upcoming or suggest they are in town for it"));
 });
 
-test("Reachout: Legacy showInfo from months ago (May 2026) is NOT treated as an upcoming show", () => {
+test("Reachout: Legacy showInfo from months ago (May 2026) is NOT treated as an upcoming show", (t) => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-10-24T12:00:00Z") });
   const payload = buildPayload({
     artist: "HORRIFIC VISIONS",
     genreText: "death metal",
@@ -148,7 +149,8 @@ test("Reachout: Legacy showInfo from months ago (May 2026) is NOT treated as an 
   assert.ok(userText.includes("Do NOT mention an upcoming Austin show or suggest the artist is traveling to Austin"));
 });
 
-test("Reachout: Legacy showInfo with future date is correctly promoted to upcoming show", () => {
+test("Reachout: Legacy showInfo with future date is correctly promoted to upcoming show", (t) => {
+  t.mock.timers.enable({ apis: ["Date"], now: new Date("2026-10-24T12:00:00Z") });
   const payload = buildPayload({
     artist: "Future Tour Band",
     genreText: "metal",
