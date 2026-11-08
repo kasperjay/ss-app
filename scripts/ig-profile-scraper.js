@@ -92,11 +92,7 @@ const mapPost = (item) => {
   };
 };
 
-const extractEmailsFromText = (value) => {
-  if (!value) return [];
-  const matches = String(value).match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || [];
-  return matches.map((email) => email.toLowerCase());
-};
+const { extractContactEmails: extractEmailsFromText, isContactEmail } = require("../src/lib/contact-email");
 
 const fetchProfile = async (client, username) => {
   const run = await client.actor(CONFIG.actorId).call({
@@ -134,7 +130,7 @@ const buildPayload = (username, profile, posts) => {
   const emails = [
     ...extractEmailsFromText(bio),
     ...(directEmail ? [directEmail.toLowerCase()] : []),
-  ].filter(Boolean);
+  ].filter(isContactEmail);
   const followers =
     typeof profile?.followersCount === "number" ? profile.followersCount : null;
   const mappedPosts = posts.map(mapPost).filter(Boolean);

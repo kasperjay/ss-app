@@ -1,3 +1,4 @@
+const { isContactEmail } = require("./contact-email");
 const nodemailer = require("nodemailer");
 
 const getTransporter = () => {
@@ -19,6 +20,7 @@ const getTransporter = () => {
 };
 
 const sendEmail = async (to, subject, html) => {
+  if (!isContactEmail(to)) throw new Error("Recipient is not a usable contact email");
   const transporter = getTransporter();
   const from = process.env.SMTP_FROM || '"Kasper | Spectral Soundworks" <kasper@spectralsound.works>';
 

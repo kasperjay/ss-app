@@ -64,11 +64,7 @@ const toDate = (value) => {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 };
 
-const extractEmails = (value) => {
-  if (!value) return [];
-  const matches = String(value).match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || [];
-  return matches.map((email) => email.toLowerCase());
-};
+const { extractContactEmails: extractEmails } = require("../src/lib/contact-email");
 
 const splitGenres = (value) => {
   if (!value) return [];

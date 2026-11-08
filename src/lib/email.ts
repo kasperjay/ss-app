@@ -1,4 +1,4 @@
-const EMAIL_REGEX = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+import { isContactEmail, extractContactEmails, extractContactEmailsFromHtml } from "./contact-email";
 
 const LINK_HUB_HOSTS = new Set([
   "linktr.ee",
@@ -44,11 +44,7 @@ const normalizeUrl = (value?: string | null) => {
   }
 };
 
-const extractEmailsFromText = (value?: string | null) => {
-  if (!value) return [] as string[];
-  const matches = value.match(EMAIL_REGEX) || [];
-  return matches.map((email) => email.toLowerCase());
-};
+const extractEmailsFromText = extractContactEmails;
 
 const extractLinks = (html: string, baseUrl: string) => {
   const links = new Set<string>();
@@ -156,7 +152,7 @@ export const discoverEmailsFromUrls = async (urls: Array<string | null | undefin
     const html = await fetchHtml(url);
     if (!html) continue;
 
-    for (const email of extractEmailsFromText(html)) {
+    for (const email of extractContactEmailsFromHtml(html)) {
       emails.add(email);
     }
 
@@ -183,7 +179,7 @@ export const mergeEmails = (...emailSets: Array<string[] | null | undefined>) =>
     if (!emails) continue;
     for (const email of emails) {
       const normalized = email.trim().toLowerCase();
-      if (normalized) set.add(normalized);
+      if (isContactEmail(normalized)) set.add(normalized);
     }
   }
   return Array.from(set);

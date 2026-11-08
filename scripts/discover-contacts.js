@@ -27,7 +27,6 @@ const { withAgentRun, prisma, pool } = require("../src/lib/agent-runner");
 
 // ── Email utilities ───────────────────────────────────────────────────────────
 
-const EMAIL_REGEX = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
 
 const LINK_HUB_HOSTS = new Set([
   "linktr.ee", "linkin.bio", "beacons.ai", "lnk.to", "solo.to",
@@ -51,10 +50,7 @@ const normalizeUrl = (value) => {
   } catch { return null; }
 };
 
-const extractEmailsFromText = (value) => {
-  if (!value) return [];
-  return (value.match(EMAIL_REGEX) || []).map((e) => e.toLowerCase());
-};
+const { extractContactEmailsFromHtml } = require("../src/lib/contact-email");
 
 const extractLinks = (html, baseUrl) => {
   const links = new Set();
@@ -121,7 +117,7 @@ const discoverEmailsFromUrls = async (urls) => {
     const html = await fetchHtml(url);
     if (!html) continue;
 
-    for (const email of extractEmailsFromText(html)) emails.add(email);
+    for (const email of extractContactEmailsFromHtml(html)) emails.add(email);
     if (emails.size > 0) continue;
 
     const links = extractLinks(html, url);

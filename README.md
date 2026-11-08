@@ -228,3 +228,7 @@ Priority starts with the existing lead score and adds only approved, evidenced p
 ### Temporary DNS fallback
 
 Use https://spectral-soundworks-kkkkrash.zocomputer.io with the existing route and portal token while custom-domain DNS is unavailable. Set `NEXT_PUBLIC_APP_URL` to that origin in `.env.local` and rebuild/restart after changing it. Existing navigation and portal file requests use relative paths. Previously shared custom-domain links must be re-shared with the Zo hostname; a redirect cannot repair DNS failures. The separate marketing booking site is not hosted by this CRM.
+
+### Contact email filtering
+
+Website discovery reads page text and mailto links, excluding scripts, styles, comments, and asset attributes. Shared validation in `src/lib/contact-email.js` rejects telemetry endpoints, placeholders, asset filenames, known concatenation errors, and Bandcamp support addresses during discovery/import/ingestion and before SMTP delivery. This filters scraping errors; it does not verify mailbox ownership or deliverability. Regression checks: `npm test` and `npx vitest run src/lib/email.test.ts`.
