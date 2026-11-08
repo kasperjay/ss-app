@@ -1,5 +1,6 @@
 import { chromium } from "playwright";
 import fs from "node:fs/promises";
+import { serveLogin } from "./login-http.js";
 
 process.umask(0o077);
 const cookiesPath = new URL("../data/cookies.json", import.meta.url);
@@ -15,6 +16,7 @@ const page = await context.newPage();
 await page.goto("https://www.instagram.com/", { waitUntil: "domcontentloaded" });
 console.log("Private Instagram login ready.");
 let saved = false;
+serveLogin(page, () => saved);
 while (browser.isConnected()) {
   await new Promise(resolve => setTimeout(resolve, 3000));
   if (saved || page.isClosed()) continue;

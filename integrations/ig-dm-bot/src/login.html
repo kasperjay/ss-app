@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Private Instagram sign-in</title>
+<style>body{margin:16px;font:16px system-ui;background:#151515;color:white}button,input{font:inherit;padding:10px;margin:4px}img{display:block;width:100%;max-width:1280px;border:1px solid #777}#status{min-height:24px}form{display:flex;flex-wrap:wrap}input{flex:1;min-width:180px}</style>
+<h1>Instagram sign-in</h1>
+<p>Click a field in the Instagram window, then type. On mobile, use the text box below to enter text into the selected field.</p>
+<p id="status" role="status">Connecting…</p>
+<form id="typing"><input id="text" type="password" autocomplete="off" aria-label="Text to type into selected Instagram field"><button>Type into selected field</button></form>
+<button data-key="Tab">Next field</button><button data-key="Enter">Enter</button><button data-key="Backspace">Backspace</button>
+<img id="screen" tabindex="0" alt="Interactive Instagram browser">
+<script>
+const screen=document.querySelector('#screen'), status=document.querySelector('#status'), text=document.querySelector('#text');
+let queue=Promise.resolve();
+function send(input) {
+  queue=queue.then(async()=>{
+    const r=await fetch('/input',{method:'POST',headers:{'Content-Type':'application/json','X-Login-Input':'1'},body:JSON.stringify(input)});
+    if(!r.ok)throw Error('Input failed');
+  }).catch(()=>{status.textContent='Input failed. Select the field and try again.'});
+  return queue;
+}
+screen.onclick=e=>{const r=screen.getBoundingClientRect();send({type:'click',x:(e.clientX-r.left)*1280/r.width,y:(e.clientY-r.top)*800/r.height});screen.focus()};
+screen.onkeydown=e=>{
+  if(e.key.length===1&&!e.ctrlKey&&!e.metaKey){e.preventDefault();send({type:'text',text:e.key})}
+  else if(['Tab','Enter','Backspace','Escape','ArrowDown','ArrowUp','ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();send({type:'key',key:e.key})}
+  else if((e.ctrlKey||e.metaKey)&&e.key==='a'){e.preventDefault();send({type:'key',key:'ControlOrMeta+A'})}
+};
+screen.onpaste=e=>{e.preventDefault();send({type:'text',text:e.clipboardData.getData('text')})};
+screen.onwheel=e=>{e.preventDefault();send({type:'scroll',y:e.deltaY})};
+document.querySelector('#typing').onsubmit=e=>{e.preventDefault();const value=text.value;text.value='';send({type:'text',text:value})};
+document.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>send({type:'key',key:b.dataset.key}));
+async function refresh(){
+  try{
+    const r=await fetch('/status');if(!r.ok)throw Error();
+    const s=await r.json();status.textContent=s.saved?'Session saved. Reply “signed in” in chat.':'Connected. Sign in as kasgotthatsound.';
+    screen.src='/frame?t='+Date.now();
+  }catch{status.textContent='Connection interrupted. Retrying…'}
+  setTimeout(refresh,1500);
+}
+refresh();
+</script></html>

@@ -12,10 +12,6 @@ for attempt in {1..50}; do
   if xdpyinfo -display :88 >/dev/null 2>&1; then break; fi
   sleep 0.1
 done
-x11vnc -display :88 -localhost -rfbport 5988 -forever -shared -nopw -quiet &
-pids+=($!)
 node src/private-login.js &
-pids+=($!)
-websockify --web /usr/share/novnc "127.0.0.1:${PORT}" 127.0.0.1:5988 &
 pids+=($!)
 wait -n
