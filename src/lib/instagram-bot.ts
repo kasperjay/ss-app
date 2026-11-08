@@ -21,7 +21,7 @@ export async function isBotLoggedIn(): Promise<{ ok: boolean; loggedIn: boolean;
             headers: process.env.IG_DM_WEBHOOK_SECRET
                 ? { "X-Webhook-Secret": process.env.IG_DM_WEBHOOK_SECRET }
                 : {},
-            signal: AbortSignal.timeout(10000),
+            signal: AbortSignal.timeout(35000),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -36,7 +36,9 @@ export async function isBotLoggedIn(): Promise<{ ok: boolean; loggedIn: boolean;
         return {
             ok: false,
             loggedIn: false,
-            error: error instanceof Error ? error.message : "Cannot connect to IG DM bot",
+            error: error instanceof Error && error.name === "TimeoutError"
+                ? "Instagram login verification timed out. Your message was not queued. Try again shortly."
+                : error instanceof Error ? error.message : "Cannot connect to IG DM bot",
         };
     }
 }
