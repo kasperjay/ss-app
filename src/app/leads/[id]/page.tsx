@@ -277,6 +277,12 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
         : featuredRelease.url
     : null;
   const featuredReleaseEmbedUrl = featuredRelease ? spotifyEmbedUrl(featuredRelease) : null;
+  const artistSpotifyId = lead.artist.spotifyArtistUrl?.match(
+    /^https:\/\/open\.spotify\.com\/(?:intl-[^/]+\/)?artist\/([A-Za-z0-9]+)(?:[/?#]|$)/,
+  )?.[1];
+  const playerEmbedUrl = artistSpotifyId
+    ? `https://open.spotify.com/embed/artist/${artistSpotifyId}`
+    : featuredReleaseEmbedUrl;
 
   const firstPost = postRows[0] ?? null;
   const instagramAvatar = proxiedHelper(
@@ -633,19 +639,19 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
                     />
                   </div>
 
-                  {featuredRelease && featuredReleaseEmbedUrl ? (
+                  {playerEmbedUrl ? (
                     <div className="space-y-3">
                       <iframe
-                        title={`Spotify player for ${featuredRelease.title}`}
+                        title={`Spotify player for ${lead.artist.name}`}
                         className="w-full rounded-xl"
-                        src={featuredReleaseEmbedUrl}
+                        src={playerEmbedUrl}
                         height="352"
                         frameBorder="0"
                         allowFullScreen
                         allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                         loading="lazy"
                       />
-                      <div className="flex items-center justify-between gap-3 px-1">
+                      {featuredRelease ? <div className="flex items-center justify-between gap-3 px-1">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold text-white">{featuredRelease.title}</p>
                           <p className="text-xs text-white/45">
@@ -662,7 +668,7 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
                             Open ↗
                           </a>
                         ) : null}
-                      </div>
+                      </div> : null}
                     </div>
                   ) : featuredRelease ? (
                     <div className="rounded-xl border border-white/10 bg-white/3 p-5">
