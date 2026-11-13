@@ -28,7 +28,7 @@ const DEFAULT_SEQUENCES = [
           "Introduce Spectral Soundworks naturally. Reference a recent release or show. Keep it concise, genuine, and low-pressure.",
       },
       {
-        dayOffset: 4,
+        dayOffset: 5,
         tone: "Friendly check-in",
         promptHint:
           "Brief, light follow-up. Acknowledge they may be busy. Reference the previous message casually and ask one simple open-ended question about upcoming music.",
@@ -48,7 +48,7 @@ const DEFAULT_SEQUENCES = [
     isDefault: false,
     steps: [
       {
-        dayOffset: 2,
+        dayOffset: 3,
         tone: "Session scope & booking check-in",
         promptHint:
           "Follow up warmly on their reply, share the consultation booking link, and ask what song or demo they want to start with.",
@@ -68,13 +68,13 @@ const DEFAULT_SEQUENCES = [
     isDefault: false,
     steps: [
       {
-        dayOffset: 2,
-        tone: "Pricing reminder",
+        dayOffset: 3,
+        tone: "No-pressure follow-up",
         promptHint:
           "Gently follow up on the rates/scope shared earlier. Offer to tailor a single-song or EP package or hop on a quick 15-minute call.",
       },
       {
-        dayOffset: 8,
+        dayOffset: 7,
         tone: "Value-add close",
         promptHint:
           "Low-pressure follow-up inviting them to start with a single track so they can hear the mix/master translation firsthand before committing to a larger project.",
