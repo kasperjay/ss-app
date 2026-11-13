@@ -6,19 +6,14 @@ const MAX_CONCURRENT_RUNS = 2;
 const ORG_ACTOR_OWNER = "spectral-soundworks";
 
 async function getActiveRunCount(client: ApifyClient): Promise<number> {
-    try {
-        const result = await client.runs().list({ status: "RUNNING", limit: 20 });
-        const items = (result as any).items || [];
-        return items.length;
-    } catch {
-        return 0;
-    }
+    const result = await client.runs().list({ status: "RUNNING", limit: 20 });
+    return result.items.length;
 }
 
 export async function POST(request: Request) {
     try {
         const { actorId, input } = await request.json();
-        if (!actorId || !input) {
+        if (typeof actorId !== "string" || !actorId.trim() || !input || typeof input !== "object" || Array.isArray(input)) {
             return NextResponse.json(
                 { error: "actorId and input are required" },
                 { status: 400 }
@@ -28,13 +23,7 @@ export async function POST(request: Request) {
         const personalToken = process.env.APIFY_TOKEN;
         const orgToken = process.env.APIFY_ORG_TOKEN;
         const isOrgActor = actorId.startsWith(`${ORG_ACTOR_OWNER}/`);
-        const isPublicInstagramActor = actorId === "apify/instagram-scraper" || actorId === "apify/instagram-hashtag-scraper" || actorId === "apify/instagram-profile-scraper";
-
-        const token = isOrgActor
-            ? (orgToken || personalToken)
-            : isPublicInstagramActor
-              ? (personalToken || orgToken)
-              : (personalToken || orgToken);
+        const token = isOrgActor ? (orgToken || personalToken) : (personalToken || orgToken);
 
         if (!token) {
             return NextResponse.json(
@@ -55,7 +44,7 @@ export async function POST(request: Request) {
             }
         }
 
-        console.log(`[DISCOVER] Starting actor ${actorId} with ${isOrgActor ? "org" : "personal"} token: ${token.substring(0, 10)}...`);
+        console.log(`[DISCOVER] Starting actor ${actorId} with ${isOrgActor ? "org" : "personal"} credentials`);
 
         const run = await client.actor(actorId).start(input);
         console.log(`[DISCOVER] Run started: ${run.id}`);
