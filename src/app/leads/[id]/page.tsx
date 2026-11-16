@@ -1,3 +1,4 @@
+import { getSpotifyEmbedColor } from "@/lib/spotify-embed-theme";
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
@@ -284,6 +285,8 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
     ? `https://open.spotify.com/embed/artist/${artistSpotifyId}`
     : featuredReleaseEmbedUrl;
 
+  const spotifyColor = await getSpotifyEmbedColor(playerEmbedUrl);
+
   const firstPost = postRows[0] ?? null;
   const instagramAvatar = proxiedHelper(
     lead.artist.instagramProfileImageUrl ?? firstPost?.imageUrl ?? null,
@@ -405,7 +408,7 @@ export default async function LeadDetailPage({ params, searchParams }: LeadDetai
   };
 
   return (
-    <DynamicThemeShell imageUrl={themeImageUrl} artistName={lead.artist.name} genre={lead.artist.genre} accentColors={accentColors}>
+    <DynamicThemeShell spotifyColor={spotifyColor} imageUrl={themeImageUrl} artistName={lead.artist.name} genre={lead.artist.genre} accentColors={accentColors}>
       <div className="relative min-h-screen pb-20 selection:bg-accent/30 selection:text-white">
         <div className="relative mx-auto flex max-w-7xl flex-col gap-10 px-6 pt-12">
           <div className="relative min-h-[420px] md:h-[480px] w-full rounded-[40px] overflow-hidden group shadow-2xl border border-white/10 bg-zinc-950 flex flex-col justify-between p-6 md:p-10">

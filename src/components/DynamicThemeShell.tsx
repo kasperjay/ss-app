@@ -190,13 +190,14 @@ function buildTheme(palette: RGB[]) {
         "--border-subtle": border,
         "--border-accent": borderAccent,
         "--accent-secondary": rgbToHex(darken(accentVibrant, 0.15)),
-        "--accent-warm": rgbToHex(lighten({ r: accentVibrant.r, g: Math.max(0, accentVibrant.g - 40), b: Math.max(0, accentVibrant.b - 80) }, 0.1)),
+        "--accent-warm": rgbToHex(lighten(accentVibrant, 0.1)),
     };
 }
 
 interface Props {
     imageUrl: string | null;
     artistName: string;
+    spotifyColor?: string | null;
     genre?: string | null;
     accentColors?: {
         accent?: string | null;
@@ -246,7 +247,7 @@ function restoreVars(target: HTMLElement, vars: Record<string, string>) {
     }
 }
 
-export function DynamicThemeShell({ imageUrl, artistName, genre, accentColors, children }: Props) {
+export function DynamicThemeShell({ imageUrl, artistName, genre, accentColors, spotifyColor, children }: Props) {
     const shellRef = useRef<HTMLDivElement>(null);
     const fontInjected = useRef(false);
     const accentsStored = useRef(false);
@@ -349,9 +350,18 @@ export function DynamicThemeShell({ imageUrl, artistName, genre, accentColors, c
         const shellVarsBeforeTheme = shell ? captureVars(shell) : {};
         let cancelled = false;
 
+        fontInjected.current = false;
+        accentsStored.current = false;
+        paletteApplied.current = false;
         applyFont();
         applyStoredAccents();
-        if (!imageUrl) {
+        const spotifyRgb = spotifyColor ? hexToRgb(spotifyColor) : null;
+        if (spotifyRgb) {
+            const theme = buildTheme([spotifyRgb]);
+            applyVars(theme);
+            applyVars(theme, shell);
+        }
+        if (spotifyRgb || !imageUrl) {
             return () => {
                 restoreVars(root, rootVarsBeforeTheme);
                 if (shell) restoreVars(shell, shellVarsBeforeTheme);
@@ -391,7 +401,7 @@ export function DynamicThemeShell({ imageUrl, artistName, genre, accentColors, c
             restoreVars(root, rootVarsBeforeTheme);
             if (shell) restoreVars(shell, shellVarsBeforeTheme);
         };
-    }, [imageUrl, applyFont, applyStoredAccents]);
+    }, [imageUrl, spotifyColor, applyFont, applyStoredAccents]);
 
     return (
         <div
